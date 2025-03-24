@@ -12,6 +12,10 @@ def run_file(filename):
         
         lexer = Lexer(text)
         tokens = lexer.get_tokens()
+        # After getting tokens in run_file():
+        print("\n=== TOKEN STREAM ===")
+        for i, token in enumerate(tokens):
+            print(f"{i:2d}: {token}")
 
         # In amatak.py, after getting tokens: remove this after check
         #rint("Generated tokens:")
@@ -23,6 +27,10 @@ def run_file(filename):
         
         parser = Parser(tokens)
         tree = parser.parse()
+        # After parsing in run_file():
+        print("\n=== ABSTRACT SYNTAX TREE ===")
+        for i, node in enumerate(tree):
+            print(f"{i:2d}: {node}")
 
         # In amatak.py, after parsing: remove this after check
        #print("Generated AST:")

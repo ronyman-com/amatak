@@ -121,6 +121,8 @@ class Parser:
 
     def parse_expression(self):
         """Parse expressions with binary operators."""
+        if self.current_token.type == TokenType.LBRACKET:
+             return self.parse_array()
         node = self.parse_primary()
         
         while self.current_token and self.current_token.type in (
@@ -162,3 +164,43 @@ class Parser:
             return node
             
         self.error(f"Unexpected token: {self.current_token.type}")
+
+
+
+
+    def parse_array(self):
+        """Parse array literal: [expr, expr, ...]"""
+        self.expect(TokenType.LBRACKET, "Expected '['")
+        elements = []
+        if self.current_token.type != TokenType.RBRACKET:
+            elements.append(self.parse_expression())
+            while self.current_token.type == TokenType.COMMA:
+                self.advance()
+                elements.append(self.parse_expression())
+        self.expect(TokenType.RBRACKET, "Expected ']'")
+        return ArrayNode(elements)
+
+    def parse_array_access(self, array):
+        """Parse array access: array[expr]"""
+        self.expect(TokenType.LBRACKET, "Expected '[' for array access")
+        index = self.parse_expression()
+        self.expect(TokenType.RBRACKET, "Expected ']' for array access")
+        return ArrayAccessNode(array, index)
+
+    def parse_for_loop(self):
+        """Parse for loop: for let i = 0; i < len; i = i + 1 { ... }"""
+        self.expect(TokenType.FOR, "Expected 'for'")
+        self.expect(TokenType.LET, "Expected 'let' in for loop")
+        var_name = self.expect(TokenType.IDENTIFIER, "Expected variable name")
+        self.expect(TokenType.ASSIGN, "Expected '=' in for loop")
+        start = self.parse_expression()
+        self.expect(TokenType.SEMI, "Expected ';'")
+        condition = self.parse_expression()
+        self.expect(TokenType.SEMI, "Expected ';'")
+        step = self.parse_expression()
+        self.expect(TokenType.LBRACE, "Expected '{'")
+        body = []
+        while self.current_token.type != TokenType.RBRACE:
+            body.append(self.parse_statement())
+        self.expect(TokenType.RBRACE, "Expected '}'")
+        return ForNode(var_name, start, condition, step, body)

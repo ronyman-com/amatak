@@ -17,6 +17,13 @@ class TokenType(Enum):
     DIV = "/"
     ASSIGN = "="
     COLON = ":"
+    LBRACKET = "["
+    RBRACKET = "]"
+    PUSH = "push"
+    POP = "pop"
+    LEN = "len"
+    FOR = "for"
+    IN = "in"
     
     # Comparison operators
     EQ = "=="

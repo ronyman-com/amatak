@@ -105,23 +105,54 @@ class Lexer:
         tokens = []
         
         while self.current_char is not None:
+            # Skip whitespace first
             if self.current_char.isspace():
                 self.skip_whitespace()
-            elif self.current_char == '#':
+                continue
+                
+            # Handle comments
+            if self.current_char == '#':
                 self.skip_comment()
-            elif self.current_char == '"':
+                continue
+                
+            # Handle strings
+            if self.current_char == '"':
                 tokens.append(self.get_string())
-            elif self.current_char.isdigit():
+                continue
+                
+            # Handle numbers
+            if self.current_char.isdigit():
                 tokens.append(self.get_number())
-            elif self.current_char.isalpha() or self.current_char == '_':
+                continue
+                
+            # Handle identifiers and keywords
+            if self.current_char.isalpha() or self.current_char == '_':
                 tokens.append(self.get_identifier_or_keyword())
-            elif self.current_char in self.symbols:
-                # Handle operators and symbols
+                continue
+                
+            # Handle symbols
+            if self.current_char in self.symbols:
+                # Check for multi-character operators first
+                if self.current_char in ('=', '!', '<', '>'):
+                    peek_pos = self.pos + 1
+                    if peek_pos < len(self.text):
+                        combined = self.current_char + self.text[peek_pos]
+                        if combined in self.symbols:
+                            token_type = self.symbols[combined]
+                            tokens.append(Token(token_type, combined, self.line, self.column))
+                            self.advance()  # Skip first char
+                            self.advance()  # Skip second char
+                            continue
+                
+                # Single-character symbol
                 token_type = self.symbols[self.current_char]
                 tokens.append(Token(token_type, self.current_char, self.line, self.column))
                 self.advance()
-            else:
-                self.error(f"Unknown character: '{self.current_char}'")
+                continue
+                
+            # If we get here, it's an unrecognized character
+            self.error(f"Unknown character: '{self.current_char}'")
         
+        # Add EOF token at the end
         tokens.append(Token(TokenType.EOF, "", self.line, self.column))
         return tokens
