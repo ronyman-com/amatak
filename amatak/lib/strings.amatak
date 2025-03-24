@@ -1,0 +1,25 @@
+function split(s, delimiter) {
+    let result = []
+    let temp = ""
+    for let i = 0; i < len(s); i = i + 1 {
+        if s[i] == delimiter {
+            result.push(temp)
+            temp = ""
+        } else {
+            temp = temp + s[i]
+        }
+    }
+    result.push(temp)
+    return result
+}
+
+function join(arr, delimiter) {
+    let result = ""
+    for let i = 0; i < len(arr); i = i + 1 {
+        result = result + arr[i]
+        if i < len(arr) - 1 {
+            result = result + delimiter
+        }
+    }
+    return result
+}

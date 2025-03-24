@@ -1,0 +1,9 @@
+function read_json(path) {
+    let content = read_file(path)
+    return parse_json(content)
+}
+
+function write_json(path, data) {
+    let content = stringify_json(data)
+    write_file(path, content)
+}

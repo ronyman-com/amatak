@@ -1,0 +1,7 @@
+function now() {
+    return system_time()  // Use a built-in or external time library
+}
+
+function format_date(timestamp, format) {
+    return format_timestamp(timestamp, format)
+}

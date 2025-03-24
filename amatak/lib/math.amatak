@@ -1,0 +1,11 @@
+function sin(x) {
+    return math_sin(x)  # Use a built-in or external math library
+}
+
+function cos(x) {
+    return math_cos(x)
+}
+
+function log(x, base) {
+    return math_log(x) / math_log(base)
+}
