@@ -1,22 +1,3 @@
-
-
-class ASTNode:
-    pass
-
-class PrintNode(ASTNode):
-    def __init__(self, value):
-        self.value = value
-
-    def __repr__(self):
-        return f"PrintNode({self.value})"
-
-class StringNode(ASTNode):
-    def __init__(self, value):
-        self.value = value
-
-    def __repr__(self):
-        return f"StringNode({self.value})"
-
 class ASTNode:
     """Base class for all Abstract Syntax Tree nodes."""
     def __repr__(self):
@@ -95,3 +76,84 @@ class IdentifierNode(ASTNode):
             name: Variable name (str)
         """
         self.name = name
+
+class ArrayNode(ASTNode):
+    """Array literal node."""
+    def __init__(self, elements):
+        """
+        Args:
+            elements: List of element nodes (list[ASTNode])
+        """
+        self.elements = elements
+
+class ArrayAccessNode(ASTNode):
+    """Array access node."""
+    def __init__(self, array, index, value=None):
+        """
+        Args:
+            array: Array expression (ASTNode)
+            index: Index expression (ASTNode)
+            value: Optional value for assignment (ASTNode)
+        """
+        self.array = array
+        self.index = index
+        self.value = value  # Only used for assignments like arr[0] = 5
+
+class AssignmentNode(ASTNode):
+    """Variable assignment node."""
+    def __init__(self, name, value):
+        """
+        Args:
+            name: Variable name (str or ASTNode for array access)
+            value: Expression to assign (ASTNode)
+        """
+        self.name = name
+        self.value = value
+
+class ForNode(ASTNode):
+    """For loop node."""
+    def __init__(self, var_name, start, condition, step, body):
+        """
+        Args:
+            var_name: Loop variable name (str)
+            start: Starting value expression (ASTNode)
+            condition: Loop condition expression (ASTNode)
+            step: Step expression (ASTNode)
+            body: List of statements in loop body (list[ASTNode])
+        """
+        self.var_name = var_name
+        self.start = start
+        self.condition = condition
+        self.step = step
+        self.body = body
+
+class BooleanNode(ASTNode):
+    """Boolean literal node."""
+    def __init__(self, value):
+        """
+        Args:
+            value: Boolean value (bool)
+        """
+        self.value = value
+
+class IfNode(ASTNode):
+    """If statement node."""
+    def __init__(self, condition, then_branch, else_branch=None):
+        """
+        Args:
+            condition: Condition expression (ASTNode)
+            then_branch: Statements in then branch (list[ASTNode])
+            else_branch: Statements in else branch (list[ASTNode], optional)
+        """
+        self.condition = condition
+        self.then_branch = then_branch
+        self.else_branch = else_branch
+
+class ReturnNode(ASTNode):
+    """Return statement node."""
+    def __init__(self, expression=None):
+        """
+        Args:
+            expression: Expression to return (ASTNode, optional)
+        """
+        self.expression = expression

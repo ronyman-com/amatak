@@ -45,19 +45,22 @@ class Interpreter:
     def visit_ArrayAccessNode(self, node):
         array = self.visit(node.array)
         index = self.visit(node.index)
-        return array[index]
+        try:
+            return array[index]
+        except IndexError:
+            raise AmatakRuntimeError(f"Array index {index} out of bounds")
 
     def visit_ArrayAssignNode(self, node):
         array = self.visit(node.array)
         index = self.visit(node.index)
         value = self.visit(node.value)
         array[index] = value
+        return value
 
     def visit_ArrayMethodNode(self, node):
         array = self.visit(node.array)
         if node.method == 'push':
-            value = self.visit(node.args[0])
-            array.append(value)
+            array.append(self.visit(node.args[0]))
         elif node.method == 'pop':
             return array.pop()
 
@@ -67,6 +70,13 @@ class Interpreter:
             for stmt in node.body:
                 self.visit(stmt)
             self.variables[node.var_name] += self.visit(node.step)
+
+    def visit_FunctionCallNode(self, node):
+        if node.name == 'len':
+            if len(node.args) != 1:
+                raise AmatakRuntimeError("len() expects exactly 1 argument")
+            return len(self.visit(node.args[0]))
+        # ... handle other functions ...
 
     def evaluate(self, node):
         """Evaluate AST nodes to their values"""

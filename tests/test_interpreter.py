@@ -1,4 +1,4 @@
-# tests/test_interpreter.py
+// tests/test_interpreter.py
 import unittest
 from amatak.lexer import Lexer
 from amatak.parser import Parser

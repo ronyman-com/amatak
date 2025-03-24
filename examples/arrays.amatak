@@ -32,4 +32,3 @@ print "Iterating over the array:"
 for let i = 0; i < len(numbers); i = i + 1 {
     print numbers[i]
 }
-

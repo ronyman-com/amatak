@@ -1,13 +1,9 @@
 function add(a, b) {
     return a + b
 }
-
 print add(10, 20)
-
-
 function greet(name) {
     print("Hello, " + name + "!")
 }
-
 greet("Alice")
 greet("Bob")

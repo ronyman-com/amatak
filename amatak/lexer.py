@@ -1,6 +1,7 @@
 from .errors import AmatakSyntaxError
 from .tokens import Token, TokenType
 
+
 class Lexer:
     def __init__(self, text: str):
         """Initialize the lexer with source text."""
@@ -29,17 +30,37 @@ class Lexer:
             self.current_char = None
 
     def skip_whitespace(self):
-        """Skip whitespace characters except newlines."""
-        while self.current_char is not None and self.current_char.isspace() and self.current_char != '\n':
+        """Skip whitespace characters including spaces, tabs, etc. except newlines."""
+        while (self.current_char is not None and 
+              self.current_char.isspace() and 
+              self.current_char != '\n'):
             self.advance()
 
     def skip_comment(self):
-        """Skip single-line comments."""
-        if self.current_char == '#':
-            while self.current_char is not None and self.current_char != '\n':
-                self.advance()
-            if self.current_char == '\n':
-                self.advance()
+        """Skip both single-line (//) and multi-line (/* */) comments."""
+        if self.current_char == '/' and self.pos + 1 < len(self.text):
+            next_char = self.text[self.pos + 1]
+            # Single-line comment
+            if next_char == '/':
+                self.advance()  # Skip first /
+                self.advance()  # Skip second /
+                while self.current_char is not None and self.current_char != '\n':
+                    self.advance()
+                return True
+            # Multi-line comment
+            elif next_char == '*':
+                self.advance()  # Skip /
+                self.advance()  # Skip *
+                while self.current_char is not None:
+                    if (self.current_char == '*' and 
+                        self.pos + 1 < len(self.text) and 
+                        self.text[self.pos + 1] == '/'):
+                        self.advance()  # Skip *
+                        self.advance()  # Skip /
+                        return True
+                    self.advance()
+                self.error("Unterminated multi-line comment")
+        return False
 
     def get_string(self) -> Token:
         """Read a string literal and return a STRING token."""
@@ -71,7 +92,8 @@ class Lexer:
         start_col = self.column
         decimal_points = 0
         
-        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
+        while (self.current_char is not None and 
+              (self.current_char.isdigit() or self.current_char == '.')):
             if self.current_char == '.':
                 decimal_points += 1
                 if decimal_points > 1:
@@ -92,67 +114,73 @@ class Lexer:
         start_line = self.line
         start_col = self.column
         
-        while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
+        # Read the entire word
+        while (self.current_char is not None and 
+              (self.current_char.isalnum() or 
+               self.current_char == '_')):
             result += self.current_char
             self.advance()
-            
-        # Check if it's a keyword
+        
+        # Check if it's a keyword (case-sensitive)
         token_type = self.keywords.get(result, TokenType.IDENTIFIER)
         return Token(token_type, result, start_line, start_col)
 
     def get_tokens(self) -> list[Token]:
         """Convert the source text into a list of tokens."""
         tokens = []
+        iterations = 0
+        MAX_ITERATIONS = len(self.text) * 3  # Safety limit to prevent infinite loops
         
-        while self.current_char is not None:
-            # Skip whitespace first
+        while self.current_char is not None and iterations < MAX_ITERATIONS:
+            iterations += 1
+            
+            # Skip whitespace (except newlines which we want to track)
             if self.current_char.isspace():
-                self.skip_whitespace()
+                if self.current_char == '\n':
+                    tokens.append(Token(TokenType.NEWLINE, '\n', self.line, self.column))
+                    self.advance()
+                else:
+                    self.skip_whitespace()
                 continue
                 
             # Handle comments
-            if self.current_char == '#':
-                self.skip_comment()
+            if self.skip_comment():
                 continue
                 
-            # Handle strings
+            # Handle string literals
             if self.current_char == '"':
                 tokens.append(self.get_string())
                 continue
                 
             # Handle numbers
-            if self.current_char.isdigit():
+            if self.current_char.isdigit() or self.current_char == '.':
                 tokens.append(self.get_number())
                 continue
                 
-            # Handle identifiers and keywords
+            # Handle identifiers/keywords
             if self.current_char.isalpha() or self.current_char == '_':
                 tokens.append(self.get_identifier_or_keyword())
                 continue
                 
             # Handle symbols
-            if self.current_char in self.symbols:
-                # Check for multi-character operators first
-                if self.current_char in ('=', '!', '<', '>'):
-                    peek_pos = self.pos + 1
-                    if peek_pos < len(self.text):
-                        combined = self.current_char + self.text[peek_pos]
-                        if combined in self.symbols:
-                            token_type = self.symbols[combined]
-                            tokens.append(Token(token_type, combined, self.line, self.column))
-                            self.advance()  # Skip first char
-                            self.advance()  # Skip second char
-                            continue
-                
-                # Single-character symbol
-                token_type = self.symbols[self.current_char]
-                tokens.append(Token(token_type, self.current_char, self.line, self.column))
-                self.advance()
+            matched_symbol = None
+            for symbol in sorted(self.symbols.keys(), key=len, reverse=True):
+                if self.text.startswith(symbol, self.pos):
+                    matched_symbol = symbol
+                    break
+                    
+            if matched_symbol:
+                token_type = self.symbols[matched_symbol]
+                tokens.append(Token(token_type, matched_symbol, self.line, self.column))
+                for _ in matched_symbol:
+                    self.advance()
                 continue
                 
             # If we get here, it's an unrecognized character
-            self.error(f"Unknown character: '{self.current_char}'")
+            self.error(f"Unknown character: '{self.current_char}' at {self.line}:{self.column}")
         
-        # Add EOF token at the end
+        if iterations >= MAX_ITERATIONS:
+            self.error(f"Lexer stuck after processing {iterations} characters")
+        
         tokens.append(Token(TokenType.EOF, "", self.line, self.column))
         return tokens
