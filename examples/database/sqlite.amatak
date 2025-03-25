@@ -1,0 +1,62 @@
+// Amatak SQLite Example
+import database.sqlite
+
+// Connect to database
+db = SQLite.open("example.db")
+
+// Create table
+db.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE,
+        age INTEGER
+    )
+""")
+
+// Insert data
+db.execute(
+    "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
+    ["Alice", "alice@example.com", 30]
+)
+
+// Batch insert
+users = [
+    ["Bob", "bob@example.com", 25],
+    ["Charlie", "charlie@example.com", 35],
+    ["Diana", null, 28]
+]
+db.executemany(
+    "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
+    users
+)
+
+// Query data
+results = db.query("SELECT * FROM users WHERE age > ?", [25])
+for row in results {
+    print(f"User {row['id']}: {row['name']} ({row['email']})")
+}
+
+// Update data
+db.execute(
+    "UPDATE users SET age = ? WHERE name = ?",
+    [31, "Alice"]
+)
+
+// Delete data
+db.execute("DELETE FROM users WHERE email IS NULL")
+
+// Use connection as context manager
+with db.connection() as conn:
+    conn.execute("BEGIN")
+    try {
+        conn.execute("INSERT INTO users (name) VALUES ('Eve')")
+        last_id = conn.last_insert_id()
+        print(f"Inserted user with ID: {last_id}")
+        conn.execute("COMMIT")
+    } catch {
+        conn.execute("ROLLBACK")
+    }
+
+// Close connection
+db.close()

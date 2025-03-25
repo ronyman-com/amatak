@@ -1,0 +1,72 @@
+// Amatak ORM Example
+import database.orm
+
+// Define a model
+model User {
+    id: Int @primary @autoinc
+    username: String @unique @length(min=3, max=20)
+    email: String @email
+    age: Int? @range(min=13)
+    created_at: DateTime @default(now)
+    updated_at: DateTime @default(now) @onupdate(now)
+}
+
+model Post {
+    id: Int @primary @autoinc
+    title: String @length(max=100)
+    content: Text
+    author: User @foreignkey
+    published: Bool @default(false)
+    tags: [String]
+}
+
+// Initialize ORM
+db = new Database("sqlite://mydb.sqlite")
+
+// Create tables
+db.create_tables([User, Post])
+
+// CRUD Operations
+// Create
+new_user = User {
+    username: "amatak_user",
+    email: "user@amatak.lang",
+    age: 25
+}
+user_id = db.insert(new_user)
+
+// Read
+user = db.query(User).where(username == "amatak_user").first()
+users = db.query(User).where(age > 20).order_by(created_at.desc()).limit(10)
+
+// Update
+db.query(User).where(id == user_id).update(email: "new@email.lang")
+
+// Delete
+db.query(User).where(username == "old_user").delete()
+
+// Relationships
+new_post = Post {
+    title: "Amatak ORM Guide",
+    content: "How to use the Amatak ORM...",
+    author: user,
+    tags: ["database", "orm", "amatak"]
+}
+db.insert(new_post)
+
+// Query with joins
+posts = db.query(Post)
+    .join(User)
+    .where(User.username == "amatak_user")
+    .select()
+
+// Transactions
+with db.transaction() as tx:
+    try {
+        tx.insert(new_user)
+        tx.insert(new_post)
+        tx.commit()
+    } catch error {
+        tx.rollback()
+        print("Transaction failed:", error)
+    }

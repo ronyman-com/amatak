@@ -1,0 +1,4 @@
+[console_scripts]
+akc = amatak.bin.akc:main
+amatak = amatak.bin.amatak:main
+amatakd = amatak.bin.amatakd:main

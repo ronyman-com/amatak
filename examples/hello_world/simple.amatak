@@ -1,0 +1,38 @@
+// Simple Amatak Hello World
+func main() {
+    // Basic output
+    print("Hello, World!")
+    
+    // Variables
+    name = "Amatak"
+    version = 1.0
+    
+    // String interpolation
+    print(f"Welcome to {name} v{version}")
+    
+    // Collections
+    languages = ["Amatak", "Python", "JavaScript"]
+    
+    // Loops
+    for lang in languages {
+        print(f"-> {lang}")
+    }
+    
+    // Conditionals
+    if version >= 1.0 {
+        print("Stable version")
+    } else {
+        print("Beta version")
+    }
+    
+    // Functions
+    func greet(name) {
+        return "Hello, " + name + "!"
+    }
+    
+    message = greet("Developer")
+    print(message)
+}
+
+// Run main function
+main()

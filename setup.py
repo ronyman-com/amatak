@@ -23,7 +23,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Rony MAN",
     author_email="amatak.io@outlook.com",
-    url="hhttps://github.com/ronyman-com/lang_amatak",
+    url="https://github.com/ronyman-com/lang_amatak",  # Fixed typo in URL (removed extra 'h')
     license="MIT",
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -64,14 +64,12 @@ setup(
             "aiohttp>=3.7",  # For web server components
             "jinja2>=3.0",   # For templating
         ],
+        "test": [  # Combined into a single extras_require
+            "pytest>=6.0",
+            "pytest-cov>=2.0",
+            "requests>=2.25",
+        ],
     },
-    extras_require={
-    'test': [
-        'pytest>=6.0',
-        'pytest-cov>=2.0',
-        'requests>=2.25',  # For HTTP tests
-    ],
-}
     entry_points={
         "console_scripts": [
             "amatak=amatak.bin.amatak:main",

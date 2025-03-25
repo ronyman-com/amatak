@@ -1,0 +1,69 @@
+// Amatak HTTP Server Example
+import servers.http
+import json
+
+// Create HTTP server
+server = new HttpServer(port: 8080)
+
+// Simple GET endpoint
+server.get("/", func(request) {
+    return {
+        status: 200,
+        headers: {"Content-Type": "text/html"},
+        body: "<h1>Welcome to Amatak HTTP Server</h1>"
+    }
+})
+
+// GET with path parameters
+server.get("/user/:id", func(request) {
+    user = db.query("SELECT * FROM users WHERE id = ?", [request.params.id])
+    if user {
+        return {
+            status: 200,
+            headers: {"Content-Type": "application/json"},
+            body: json.encode(user)
+        }
+    } else {
+        return {
+            status: 404,
+            body: "User not found"
+        }
+    }
+})
+
+// POST endpoint with JSON body
+server.post("/api/users", func(request) {
+    data = json.decode(request.body)
+    
+    // Validate input
+    if !data.name || !data.email {
+        return {
+            status: 400,
+            body: "Name and email are required"
+        }
+    }
+    
+    // Insert to database
+    user_id = db.insert("users", data)
+    
+    return {
+        status: 201,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({id: user_id, ...data})
+    }
+})
+
+// Middleware example
+func logger_middleware(next) {
+    return func(request) {
+        print(f"[{request.method}] {request.path}")
+        return next(request)
+    }
+}
+
+// Add middleware to all routes
+server.use(logger_middleware)
+
+// Start the server
+server.start()
+print("Server running on http://localhost:8080")

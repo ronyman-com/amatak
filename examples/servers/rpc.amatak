@@ -1,0 +1,75 @@
+// Amatak RPC Server Example
+import servers.rpc
+
+// Create RPC server
+rpc_server = new RPCServer(port: 9090)
+
+// Register simple methods
+rpc_server.register("greet", func(name) {
+    return f"Hello, {name}!"
+})
+
+// Register object with methods
+math_service = {
+    add: func(a, b) { return a + b },
+    subtract: func(a, b) { return a - b },
+    multiply: func(a, b) { return a * b },
+    divide: func(a, b) { 
+        if b == 0 { throw "Division by zero" }
+        return a / b 
+    }
+}
+
+rpc_server.register_object(math_service, prefix: "math.")
+
+// Database service example
+db_service = {
+    get_user: func(user_id) {
+        return db.query("SELECT * FROM users WHERE id = ?", [user_id])
+    },
+    create_user: func(user_data) {
+        return db.insert("users", user_data)
+    }
+}
+
+rpc_server.register_object(db_service, prefix: "db.")
+
+// Middleware for authentication
+func auth_middleware(method, params) {
+    if method.starts_with("db.") {
+        if !params.token || !validate_token(params.token) {
+            throw "Unauthorized"
+        }
+    }
+    return method, params
+}
+
+rpc_server.add_middleware(auth_middleware)
+
+// Error handler
+rpc_server.on_error(func(error, method) {
+    print(f"RPC Error in {method}: {error}")
+    return {
+        code: 500,
+        message: "Internal server error"
+    }
+})
+
+// Start the server
+rpc_server.start()
+print("RPC server running on port 9090")
+
+// Client usage example (could be in separate file)
+/*
+rpc_client = new RPCClient("http://localhost:9090")
+
+result = rpc_client.call("math.add", [5, 3])
+print("5 + 3 =", result)
+
+try {
+    user = rpc_client.call("db.get_user", {id: 1, token: "secret"})
+    print("User:", user)
+} catch error {
+    print("Error:", error)
+}
+*/
