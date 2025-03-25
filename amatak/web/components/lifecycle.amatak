@@ -1,0 +1,224 @@
+// Amatak Component Lifecycle System
+// Defines and manages component lifecycle hooks
+
+import dom from amatak.stdlib.web.dom
+from amatak.error_handling import error_handler
+from amatak.security.middleware import security_middleware
+from .core import Component
+
+class LifecycleMixin:
+    """
+    Lifecycle hooks mixin for components
+    Extend this to add lifecycle awareness
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._is_mounted = false
+        self._is_destroyed = false
+        self._pending_updates = 0
+        self._next_tick_handlers = []
+        
+    // Core Lifecycle Hooks #############################################
+    
+    @security_middleware.secure_operation
+    def on_init(self):
+        """
+        Called when component is initialized
+        Safe to set initial state here
+        """
+        pass
+        
+    @error_handler.wrap_operation
+    def on_mount(self):
+        """
+        Called when component is mounted to DOM
+        Safe to access DOM here
+        """
+        pass
+        
+    @error_handler.wrap_operation
+    def on_update(self):
+        """
+        Called when component updates (props or state change)
+        DOM is guaranteed to be up-to-date
+        """
+        pass
+        
+    @error_handler.wrap_operation
+    def on_destroy(self):
+        """
+        Called before component is destroyed
+        Clean up event listeners, timers, etc.
+        """
+        pass
+        
+    @error_handler.wrap_operation
+    def on_error(self, error):
+        """
+        Called when child component throws an error
+        Return true to prevent error propagation
+        """
+        return false
+        
+    // Advanced Lifecycle Hooks #########################################
+    
+    @error_handler.wrap_operation
+    def should_update(self, new_props, new_state) -> bool:
+        """
+        Compare props/state to determine if update is needed
+        Return false to prevent re-render
+        """
+        return true
+        
+    @error_handler.wrap_operation
+    def on_render(self):
+        """
+        Called just before render happens
+        Last chance to modify state before render
+        """
+        pass
+        
+    @error_handler.wrap_operation
+    def after_render(self):
+        """
+        Called after render completes
+        DOM is updated but child components may not be
+        """
+        pass
+        
+    @error_handler.wrap_operation
+    def after_children_render(self):
+        """
+        Called after all children have rendered
+        Entire component tree is ready
+        """
+        pass
+        
+    // Lifecycle Utilities ##############################################
+    
+    def next_tick(self, callback):
+        """
+        Queue a callback to run after next render cycle
+        """
+        self._next_tick_handlers.append(
+            error_handler.wrap_operation(callback)
+        )
+        
+    def schedule_update(self):
+        """
+        Request an asynchronous update
+        Batches multiple updates together
+        """
+        self._pending_updates += 1
+        dom.request_animation_frame(lambda: (
+            self._pending_updates -= 1,
+            self._perform_update()
+        ))
+        
+    // Internal Lifecycle Management ####################################
+    
+    def mount(self, parent):
+        """Override mount with lifecycle hooks"""
+        if self._is_destroyed:
+            return
+            
+        super().mount(parent)
+        self.on_init()
+        self._is_mounted = true
+        self.on_mount()
+        self._run_next_tick()
+        
+    def update(self, new_props=None):
+        """Override update with lifecycle hooks"""
+        if self._is_destroyed or not self._is_mounted:
+            return
+            
+        # Check if update should proceed
+        if new_props and not self.should_update(new_props, self.state):
+            return
+            
+        self.on_render()
+        super().update(new_props)
+        self.on_update()
+        self.after_render()
+        self._run_next_tick()
+        
+    def destroy(self):
+        """Trigger component destruction"""
+        if self._is_destroyed:
+            return
+            
+        self.on_destroy()
+        for child in self.children:
+            child.destroy()
+            
+        if self.element.parentNode:
+            self.element.parentNode.removeChild(self.element)
+            
+        self._is_destroyed = true
+        
+    def _perform_update(self):
+        """Process pending updates"""
+        if self._pending_updates > 0 or not self._is_mounted:
+            return
+            
+        self.update()
+        
+    def _run_next_tick(self):
+        """Execute next-tick handlers"""
+        handlers = self._next_tick_handlers
+        self._next_tick_handlers = []
+        
+        for handler in handlers:
+            try:
+                handler()
+            except error as e:
+                if not self.on_error(e):
+                    error_handler.log_error(e, {
+                        'component': self.__class__.__name__,
+                        'lifecycle': 'next_tick'
+                    })
+                    
+        # Notify children have rendered
+        if self._is_mounted:
+            self.after_children_render()
+
+// Lifecycle Decorators #################################################
+
+def on_init(func):
+    """Decorator for init lifecycle hook"""
+    def wrapper(self, *args, **kwargs):
+        result = func(self, *args, **kwargs)
+        self.on_init()
+        return result
+    return wrapper
+
+def on_mount(func):
+    """Decorator for mount lifecycle hook"""
+    def wrapper(self, parent):
+        result = func(self, parent)
+        if not hasattr(self, '_is_mounted') or not self._is_mounted:
+            self.on_mount()
+        return result
+    return wrapper
+
+def lifecycle_hook(hook_name):
+    """Generic lifecycle hook decorator"""
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            # Get existing hook if present
+            existing_hook = getattr(self, hook_name, lambda: None)
+            
+            # Define new combined hook
+            def combined_hook():
+                existing_hook()
+                func(self, *args, **kwargs)
+                
+            setattr(self, hook_name, combined_hook)
+            return func
+        return wrapper
+    return decorator
+
+// Export Lifecycle Components
+export LifecycleMixin, on_init, on_mount, lifecycle_hook

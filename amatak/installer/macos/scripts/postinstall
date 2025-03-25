@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Post-installation script for Amatak
+
+# Add to PATH in all user profiles
+for USER_HOME in /Users/*; do
+    USER=$(basename "${USER_HOME}")
+    if [ -d "${USER_HOME}" ]; then
+        BASHRC="${USER_HOME}/.bashrc"
+        ZSHRC="${USER_HOME}/.zshrc"
+        
+        # Add to .bashrc if it exists
+        if [ -f "${BASHRC}" ]; then
+            if ! grep -q "/usr/local/amatak/bin" "${BASHRC}"; then
+                echo 'export PATH="/usr/local/amatak/bin:$PATH"' >> "${BASHRC}"
+            fi
+        fi
+        
+        # Add to .zshrc if it exists
+        if [ -f "${ZSHRC}" ]; then
+            if ! grep -q "/usr/local/amatak/bin" "${ZSHRC}"; then
+                echo 'export PATH="/usr/local/amatak/bin:$PATH"' >> "${ZSHRC}"
+            fi
+        fi
+    fi
+done
+
+# Create Applications folder symlink
+ln -sf /usr/local/amatak/bin/amatak /Applications/Amatak
+
+exit 0

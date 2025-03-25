@@ -1,0 +1,8 @@
+install:
+    python install.py
+
+compile-stdlib:
+    python -m amatak compile stdlib/ -o stdlib.zip
+
+test:
+    pytest tests/

@@ -1,18 +1,46 @@
+from datetime import datetime
+
 class AmatakError(Exception):
-    """Base class for all Amatak exceptions"""
-    pass
+    """Base class for all Amatak errors"""
+    def __init__(self, message: str, context: dict = None):
+        super().__init__(message)
+        self.context = context or {}
+        self.timestamp = datetime.utcnow().isoformat()
 
 class AmatakSyntaxError(AmatakError):
-    """Syntax error in Amatak code"""
-    def __init__(self, message, line=None, column=None):
-        self.message = message
+    """Syntax errors during parsing/lexing"""
+    def __init__(self, message: str, line: int = None, column: int = None):
+        super().__init__(message)
         self.line = line
         self.column = column
-        super().__init__(f"SyntaxError: {message} at line {line}, column {column}")
+        self.context = {
+            'line': line,
+            'column': column
+        }
 
 class AmatakRuntimeError(AmatakError):
-    """Runtime error during execution"""
-    def __init__(self, message, line=None):
-        self.message = message
+    """Errors during code execution"""
+    def __init__(self, message: str, line: int = None, column: int = None):
+        super().__init__(message)
         self.line = line
-        super().__init__(f"RuntimeError: {message} at line {line}")
+        self.column = column
+        self.context = {
+            'line': line,
+            'column': column
+        }
+
+class CompilationError(AmatakError):
+    """Errors during code compilation"""
+    pass
+
+class SecurityError(AmatakError):
+    """Security-related errors"""
+    pass
+
+class DatabaseError(AmatakError):
+    """Database operation errors"""
+    pass
+
+class TypeCheckError(AmatakError):
+    """Type system validation errors"""
+    pass

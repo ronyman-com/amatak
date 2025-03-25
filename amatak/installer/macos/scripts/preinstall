@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Pre-installation script for Amatak
+
+# Check if previous version exists and remove it
+if [ -d "/usr/local/amatak" ]; then
+    echo "Removing previous installation..."
+    rm -rf /usr/local/amatak
+fi
+
+exit 0

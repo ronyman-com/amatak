@@ -1,0 +1,231 @@
+// Amatak Web Components Core
+// Provides base functionality for component-based web development
+
+import dom from amatak.stdlib.web.dom
+import http from amatak.stdlib.web.http
+import css from amatak.stdlib.web.css
+from amatak.error_handling import error_handler
+from amatak.security.middleware import security_middleware
+
+class Component:
+    """
+    Base component class for all web components
+    
+    Properties:
+    - element: The root DOM element
+    - state: Component state data
+    - props: Immutable component properties
+    - children: Child components
+    - styles: Component-specific styles
+    """
+    
+    def __init__(self, element=None, props=None):
+        self.element = element or dom.create('div')
+        self.props = props or {}
+        self.state = {}
+        self.children = []
+        self.styles = {}
+        self._listeners = {}
+        
+        # Initialize with security checks
+        security_middleware.sanitize_input(self.props)
+        
+    @security_middleware.secure_operation
+    def render(self) -> str:
+        """
+        Render component to HTML
+        Override this in child components
+        """
+        return ''
+        
+    @error_handler.wrap_operation
+    def mount(self, parent):
+        """Mount component to parent element"""
+        parent.append(self.element)
+        self._apply_styles()
+        self._render_children()
+        
+    @error_handler.wrap_operation
+    def update(self, new_props=None):
+        """Update component with new props"""
+        if new_props:
+            self.props = security_middleware.sanitize_input(new_props)
+        old_element = self.element
+        self.element = dom.create('div')
+        old_element.replace_with(self.element)
+        self._render()
+        
+    def set_state(self, new_state):
+        """Update component state and re-render"""
+        self.state = security_middleware.sanitize_input(new_state)
+        self.update()
+        
+    def add_child(self, component):
+        """Add a child component"""
+        self.children.append(component)
+        component.mount(self.element)
+        
+    def add_event_listener(self, event_type, handler):
+        """Add event listener with security checks"""
+        safe_handler = error_handler.wrap_operation(handler)
+        self._listeners[event_type] = safe_handler
+        self.element.addEventListener(event_type, safe_handler)
+        
+    def _render(self):
+        """Internal render method with error handling"""
+        try:
+            html = self.render()
+            if html:
+                self.element.innerHTML = security_middleware.sanitize_input(html)
+            self._render_children()
+            self._apply_styles()
+        except error as e:
+            error_handler.log_error(e, {
+                'component': self.__class__.__name__,
+                'action': 'render'
+            })
+            self.element.innerHTML = '<div class="error">Component failed to render</div>'
+            
+    def _render_children(self):
+        """Render all child components"""
+        for child in self.children:
+            child.mount(self.element)
+            
+    def _apply_styles(self):
+        """Apply component styles"""
+        if self.styles:
+            css.apply(self.element, self.styles)
+            
+    def __del__(self):
+        """Cleanup event listeners"""
+        for event_type, handler in self._listeners.items():
+            self.element.removeEventListener(event_type, handler)
+
+class Router:
+    """Client-side router for SPA functionality"""
+    
+    def __init__(self):
+        self.routes = {}
+        self.current = None
+        self._setup_listeners()
+        
+    @security_middleware.secure_operation
+    def add_route(self, path, component):
+        """Add route with security validation"""
+        if not isinstance(component, Component):
+            raise TypeError("Route component must inherit from Component")
+        self.routes[path] = component
+        
+    @error_handler.wrap_operation
+    def navigate(self, path):
+        """Navigate to route with error handling"""
+        if path in self.routes:
+            if self.current:
+                self.current.element.remove()
+            self.current = self.routes[path]
+            self.current.mount(dom.select('#app'))
+            history.pushState({}, '', path)
+        else:
+            self._handle_404()
+            
+    def _setup_listeners(self):
+        """Setup navigation event listeners"""
+        dom.on('click', 'a[data-navigate]', lambda e: (
+            e.preventDefault(),
+            self.navigate(e.target.getAttribute('href'))
+        ))
+        
+        window.addEventListener('popstate', lambda: (
+            self.navigate(location.pathname)
+        ))
+        
+    def _handle_404(self):
+        """Handle route not found"""
+        error_handler.log_error(
+            Exception(f"Route not found: {location.pathname}"),
+            {'type': 'router_404'}
+        )
+        dom.select('#app').innerHTML = '<h1>Page Not Found</h1>'
+
+class App:
+    """Main application container"""
+    
+    def __init__(self):
+        self.components = {}
+        self.router = Router()
+        self._setup_error_handling()
+        
+    @security_middleware.secure_operation
+    def register_component(self, name, component):
+        """Register a component with security checks"""
+        if not isinstance(component, Component):
+            raise TypeError("Must register Component instances")
+        self.components[name] = component
+        
+    @error_handler.wrap_operation
+    def start(self):
+        """Start the application"""
+        try:
+            if self.router.routes:
+                initial_path = location.pathname or '/'
+                self.router.navigate(initial_path)
+            else:
+                main_component = self.components.get('main')
+                if main_component:
+                    main_component.mount(dom.select('#app'))
+        except error as e:
+            error_handler.log_error(e, {'action': 'app_start'})
+            dom.select('body').innerHTML = '''
+                <div style="color: red; padding: 2rem;">
+                    <h1>Application Error</h1>
+                    <p>The application failed to start</p>
+                </div>
+            '''
+            
+    def _setup_error_handling(self):
+        """Setup global error handlers"""
+        window.addEventListener('error', lambda e: (
+            error_handler.log_error(e.error, {'type': 'window_error'})
+        ))
+        
+        window.addEventListener('unhandledrejection', lambda e: (
+            error_handler.log_error(e.reason, {'type': 'promise_error'})
+        ))
+
+# Core Component Types
+class View(Component):
+    """Base view component with template support"""
+    
+    def __init__(self, template=None, **kwargs):
+        super().__init__(**kwargs)
+        self.template = template or ''
+        
+    def render(self):
+        return self._render_template()
+        
+    def _render_template(self):
+        """Render with template and slots"""
+        result = self.template
+        for slot, content in self.props.get('slots', {}).items():
+            result = result.replace(f'<slot name="{slot}">', content)
+        return result
+
+class Layout(View):
+    """Layout component with header/footer slots"""
+    
+    def __init__(self, **kwargs):
+        template = '''
+            <header>
+                <slot name="header"></slot>
+            </header>
+            <main>
+                <slot name="content"></slot>
+            </main>
+            <footer>
+                <slot name="footer"></slot>
+            </footer>
+        '''
+        super().__init__(template=template, **kwargs)
+
+// Export core functionality
+export Component, Router, App, View, Layout

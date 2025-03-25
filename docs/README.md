@@ -9,68 +9,85 @@ amatak-language/
 │   ├── parser.py
 │   ├── interpreter.py
 │   ├── nodes.py
-│   ├── errors.py
+│   ├── errors.py                        # Updated error types
 │   ├── utils.py
+│   ├── error_handling.py                # NEW: Error handling system
+│   ├── debug.py                         # NEW: Debug utilities
+│   │
+│   ├── security/                        # NEW: Security components
+│   │   ├── __init__.py
+│   │   ├── middleware.py                # Security middleware
+│   │   ├── sanitizer.py                 # Input sanitization
+│   │   └── rate_limiter.py              # Rate limiting
+│   │
 │   ├── core/                            # Language core
 │   │   ├── vm.py                        # Bytecode VM
 │   │   ├── jit.py                       # JIT compiler
 │   │   └── ast/                         # AST processing
 │   │       ├── optimizer.py
 │   │       └── transformer.py
-│   ├── stdlib/                          # Standard library (merged)
+│   │
+│   ├── stdlib/                          # Standard library
 │   │   ├── __init__.py
-│   │   ├── math.amatak                  # Math functions (renamed)
-│   │   ├── math.py                      # abs, pow, round, etc.
-│   │   ├── strings.py                   # lower, upper, substring
-│   │   ├── arrays.py                    # map, filter, reduce
-│   │   ├── objects.py                   # Object system
-│   │   ├── fileio.py                    # readFile, writeFile
-│   │   ├── async.py                     # Promise, fetchData
-│   │   ├── containers/                  # Data structures
-│   │   │   ├── array.amatak             # (renamed)
-│   │   │   └── dict.amatak              # (renamed)
-│   │   └── web/                         # Web stack
-│   │       ├── http.amatak              # (renamed)
+│   │   ├── math.amatak
+│   │   ├── math.py
+│   │   ├── strings.py
+│   │   ├── arrays.py
+│   │   ├── objects.py
+│   │   ├── fileio.py
+│   │   ├── async.py
+│   │   ├── containers/
+│   │   │   ├── array.amatak
+│   │   │   └── dict.amatak
+│   │   └── web/
+│   │       ├── http.amatak
 │   │       └── dom/
-│   ├── runtime/                         # Execution (merged)
-│   │   ├── interpreter.py               # Main interpreter
-│   │   ├── scope.py                     # Variable scoping
-│   │   ├── types.py                     # Type system
-│   │   ├── memory.py                    # Memory management
-│   │   ├── memory/                      # Memory system
+│   │
+│   ├── runtime/                         # Execution
+│   │   ├── __init__.py                  # Updated with new components
+│   │   ├── interpreter.py
+│   │   ├── scope.py
+│   │   ├── types/
+│   │   │   ├── core.py                  # Updated type system
+│   │   │   └── inference.py
+│   │   ├── memory/
 │   │   │   ├── allocator.py
 │   │   │   └── gc.py
-│   │   └── types/                       # Type system
-│   │       ├── core.py
-│   │       └── inference.py
+│   │   └── debug/                       # NEW: Runtime debug tools
+│   │       ├── tracer.py
+│   │       └── profiler.py
+│   │
 │   ├── bridges/                         # Interop
 │   │   ├── python/
-│   │   │   ├── marshal.py               # Data conversion
+│   │   │   ├── marshal.py
 │   │   │   └── importer.py
 │   │   └── wasm/
 │   │       ├── compiler.py
 │   │       └── runtime.py
+│   │
 │   ├── servers/                         # Server stack
-│   │   ├── http.py                      # HTTP server
-│   │   ├── rpc/                         # Remote procedures
-│   │   └── websocket/                   # Real-time
+│   │   ├── http.py
+│   │   ├── rpc/
+│   │   └── websocket/
+│   │
 │   ├── database/                        # Database
-│   │   ├── drivers/                     # DB connectors
-│   │   │   ├── sqlite.amatak            # (renamed)
-│   │   │   └── postgres.amatak          # (renamed)
-│   │   └── orm.amatak                   # ORM core (renamed)
+│   │   ├── drivers/
+│   │   │   ├── sqlite.amatak            # Updated with error handling
+│   │   │   └── postgres.amatak          # Updated with error handling
+│   │   └── orm.amatak                   # Updated with security
+│   │
 │   └── web/                             # Frontend
-│       ├── components/                  # Component system
-│       │   ├── core.amatak              # (renamed)
-│       │   └── lifecycle.amatak         # (renamed)
-│       └── css/                         # Styling
-│           ├── parser.amatak            # (renamed)
-│           └── runtime.amatak           # (renamed)
+│       ├── components/
+│       │   ├── core.amatak
+│       │   └── lifecycle.amatak
+│       └── css/
+│           ├── parser.amatak
+│           └── runtime.amatak
 │
 ├── bin/                                # Executables
-│   ├── amatak                          # Main CLI
-│   ├── amatakd                         # Daemon
-│   └── akc                             # Compiler
+│   ├── amatak                          # Updated with error handling
+│   ├── amatakd                         # Updated with error handling
+│   └── akc                             # Updated with error handling
 │
 ├── lib/                                # Shared code
 │   ├── py_compat/                      # Python compat
@@ -80,25 +97,32 @@ amatak-language/
 │       ├── linux/
 │       └── windows/
 │
-├── examples/                           # Example programs (merged)
-│   ├── hello_world/                    # Basic examples
-│   │   ├── simple.amatak               # (renamed)
-│   │   └── web.amatak                  # (renamed)
-│   ├── databases/                      # DB examples
-│   │   ├── sqlite.amatak               # (renamed)
-│   │   └── orm.amatak                  # (renamed)
-│   ├── servers/                        # Server examples
-│   │   ├── http.amatak                 # (renamed)
-│   │   └── rpc.amatak                  # (renamed)
-│   ├── hello.amatak                    # Basic hello world
-│   ├── loops.amatak                    # Loop examples
-│   ├── functions.amatak                # Function examples
-│   ├── file_io.amatak                  # File operations
-│   ├── objects.amatak                  # Object examples
-│   └── async.amatak                    # Async programming
+├── logs/                               # NEW: Log directory
+│   ├── amatak.log                      # Main log file
+│   ├── errors.log                      # Error log
+│   └── debug/                          # Debug logs
+│       ├── trace.log
+│       └── profile.log
 │
-├── tests/                              # Test suite (merged)
-│   ├── unit/                           # Unit tests
+├── examples/                           # Example programs
+│   ├── hello_world/
+│   │   ├── simple.amatak
+│   │   └── web.amatak
+│   ├── databases/
+│   │   ├── sqlite.amatak
+│   │   └── orm.amatak
+│   ├── servers/
+│   │   ├── http.amatak
+│   │   └── rpc.amatak
+│   ├── hello.amatak
+│   ├── loops.amatak
+│   ├── functions.amatak
+│   ├── file_io.amatak
+│   ├── objects.amatak
+│   └── async.amatak
+│
+├── tests/                              # Test suite
+│   ├── unit/
 │   │   ├── core/
 │   │   │   ├── test_vm.py
 │   │   │   └── test_jit.py
@@ -108,44 +132,48 @@ amatak-language/
 │   │   ├── test_lexer.py
 │   │   ├── test_parser.py
 │   │   ├── test_interpreter.py
-│   │   └── test_nodes.py
-│   └── integration/                    # Integration
+│   │   ├── test_nodes.py
+│   │   ├── test_error_handling.py      # NEW: Error tests
+│   │   └── test_security.py            # NEW: Security tests
+│   └── integration/
 │       ├── bridges/
 │       │   ├── test_python.py
 │       │   └── test_wasm.py
 │       ├── servers/
 │       │   ├── test_http.py
 │       │   └── test_websocket.py
-│       ├── test_stdlib/                # Stdlib tests
+│       ├── test_stdlib/
 │       │   ├── test_math.py
 │       │   ├── test_arrays.py
 │       │   └── test_fileio.py
-│       └── test_features/              # Feature tests
+│       └── test_features/
 │           ├── test_closures.py
 │           └── test_async.py
 │
-├── docs/                               # Documentation (merged)
-│   ├── quickstart.md                   # Getting started
-│   ├── README.md                       # Project overview
-│   ├── language/                       # Language specs
+├── docs/                               # Documentation
+│   ├── quickstart.md
+│   ├── README.md
+│   ├── language/
 │   │   ├── syntax.md
 │   │   └── types.md
-│   ├── guides/                         # Tutorials
+│   ├── guides/
 │   │   ├── web_dev.md
 │   │   └── db_access.md
-│   ├── api/                            # API reference
+│   ├── api/
 │   │   ├── stdlib.md
 │   │   └── runtime.md
-│   └── tutorials/                      # Tutorials
+│   ├── security.md                     # NEW: Security guide
+│   ├── debugging.md                    # NEW: Debugging guide
+│   └── tutorials/
 │       ├── basics.md
 │       ├── stdlib.md
 │       └── advanced.md
 │
 ├── package.json                        # Build config
-├── requirements.txt                    # Python deps
+├── requirements.txt                    # Updated Python deps
 ├── setup.py                            # Installation
-├── amatak.py                           # Main CLI entry point
-└── repl.py                             # Interactive REPL
+├── amatak.py                           # Updated with error handling
+└── repl.py                             # Updated with error handling
 
 ## About Amatak
 Amatak is not just another language - it's a natural extension of Python designed to:

@@ -2,9 +2,12 @@ from .interpreter import Interpreter
 from .compiler import Compiler
 from .memory import MemoryManager
 from .types import TypeSystem
+from ..error_handling import error_handler
+from ..security.middleware import security_middleware
+from ..debug import debug_tools
 
 class AMatakRuntime:
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         self.interpreter = Interpreter()
         self.compiler = Compiler()
         self.memory = MemoryManager()
@@ -12,6 +15,36 @@ class AMatakRuntime:
         
         # Initialize standard library
         self._init_stdlib()
+         # Configure error handling
+        error_handler.debug = debug
+        
+        # Configure security
+        self.security = security_middleware
+        
+        # Configure debugging
+        debug_tools.enabled = debug
+        self.debug = debug_tools
+        
+        # Initialize other components with error handling
+        self.interpreter = error_handler.wrap_operation(Interpreter)
+        self.compiler = error_handler.wrap_operation(Compiler)
+        
+    @security_middleware.secure_operation
+    def execute(self, source: str):
+        """Secure execution with error handling"""
+        return error_handler.wrap_operation(
+            self.interpreter.execute,
+            source
+        )
+        
+    @debug_tools.trace
+    def compile(self, source: str):
+        """Traced compilation with error handling"""
+        return error_handler.wrap_operation(
+            self.compiler.compile,
+            source
+        )
+        
 
     def _init_stdlib(self):
         """Initialize standard library functions"""
@@ -69,9 +102,6 @@ class AMatakRuntime:
             sys.exit(1)
 
 
-
-
-
     def execute(self, source, scope=None):
         """Execute source code with a custom scope"""
         if scope is None:
@@ -83,3 +113,5 @@ class AMatakRuntime:
             self.interpreter.scope.declare(name, value)
         
         return self.interpreter.execute(source)
+    
+       

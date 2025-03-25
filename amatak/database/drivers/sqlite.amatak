@@ -1,0 +1,167 @@
+# SQLite Database Driver for Amatak
+# Provides native SQLite database connectivity
+
+import sqlite3 from python
+
+class SQLiteDriver:
+    """
+    SQLite database driver implementation
+    
+    Properties:
+    - connection: The active database connection
+    - cursor: The active cursor
+    - connected: Boolean indicating connection status
+    """
+    
+    def __init__(self):
+        self.connection = nil
+        self.cursor = nil
+        self.connected = false
+        
+    def connect(self, db_path: str) -> bool:
+        """
+        Connect to a SQLite database
+        
+        Args:
+        - db_path: Path to database file (or ':memory:' for in-memory)
+        
+        Returns:
+        - Boolean indicating success
+        """
+        try:
+            self.connection = sqlite3.connect(db_path)
+            self.cursor = self.connection.cursor()
+            self.connected = true
+            return true
+        catch error:
+            print("Connection error: " + str(error))
+            return false
+            
+    def disconnect(self) -> bool:
+        """Close the database connection"""
+        if self.connected:
+            try:
+                self.connection.close()
+                self.connected = false
+                return true
+            catch error:
+                print("Disconnection error: " + str(error))
+        return false
+        
+    def execute(self, query: str, params: array = []) -> array:
+        """
+        Execute a SQL query
+        
+        Args:
+        - query: SQL query string
+        - params: Optional parameters for prepared statements
+        
+        Returns:
+        - Array of result rows (empty for non-SELECT)
+        """
+        if not self.connected:
+            raise "Not connected to database"
+            
+        try:
+            self.cursor.execute(query, params)
+            
+            if query.strip().upper().startswith("SELECT"):
+                return self.cursor.fetchall()
+            else:
+                self.connection.commit()
+                return []
+        catch error:
+            self.connection.rollback()
+            raise "SQL Error: " + str(error)
+            
+    def execute_script(self, sql_script: str) -> bool:
+        """
+        Execute multiple SQL statements
+        
+        Args:
+        - sql_script: String containing multiple SQL statements
+        
+        Returns:
+        - Boolean indicating success
+        """
+        if not self.connected:
+            raise "Not connected to database"
+            
+        try:
+            self.cursor.executescript(sql_script)
+            self.connection.commit()
+            return true
+        catch error:
+            self.connection.rollback()
+            raise "Script Error: " + str(error)
+            
+    def table_exists(self, table_name: str) -> bool:
+        """
+        Check if a table exists in the database
+        
+        Args:
+        - table_name: Name of table to check
+        
+        Returns:
+        - Boolean indicating existence
+        """
+        query = """
+        SELECT count(*) FROM sqlite_master 
+        WHERE type='table' AND name=?
+        """
+        result = self.execute(query, [table_name])
+        return result[0][0] > 0
+        
+    def get_table_info(self, table_name: str) -> array:
+        """
+        Get column information for a table
+        
+        Args:
+        - table_name: Name of table
+        
+        Returns:
+        - Array of column information dictionaries
+        """
+        if not self.table_exists(table_name):
+            return []
+            
+        return self.execute(f"PRAGMA table_info({table_name})")
+        
+    def begin_transaction(self):
+        """Begin a transaction"""
+        self.execute("BEGIN TRANSACTION")
+        
+    def commit(self):
+        """Commit current transaction"""
+        self.execute("COMMIT")
+        
+    def rollback(self):
+        """Rollback current transaction"""
+        self.execute("ROLLBACK")
+        
+    def last_insert_id(self) -> int:
+        """Get last inserted row ID"""
+        return self.cursor.lastrowid
+        
+    def backup(self, target_path: str) -> bool:
+        """
+        Create a backup of the database
+        
+        Args:
+        - target_path: Path for backup file
+        
+        Returns:
+        - Boolean indicating success
+        """
+        try:
+            backup_conn = sqlite3.connect(target_path)
+            with backup_conn:
+                self.connection.backup(backup_conn)
+            backup_conn.close()
+            return true
+        catch error:
+            print("Backup failed: " + str(error))
+            return false
+
+# Module exports
+export SQLiteDriver

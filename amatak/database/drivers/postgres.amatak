@@ -1,0 +1,248 @@
+# PostgreSQL Database Driver for Amatak
+# Provides native PostgreSQL database connectivity
+
+import psycopg2 from python
+import psycopg2.extras from python
+
+class PostgresDriver:
+    """
+    PostgreSQL database driver implementation
+    
+    Properties:
+    - connection: The active database connection
+    - cursor: The active cursor
+    - connected: Boolean indicating connection status
+    """
+    
+    def __init__(self):
+        self.connection = nil
+        self.cursor = nil
+        self.connected = false
+        self.connection_params = {}
+        
+    def connect(self, params: dict) -> bool:
+        """
+        Connect to a PostgreSQL database
+        
+        Args:
+        - params: Dictionary with connection parameters:
+            * host: Database host
+            * port: Connection port
+            * dbname: Database name
+            * user: Username
+            * password: Password
+            * options: Additional connection options
+        
+        Returns:
+        - Boolean indicating success
+        """
+        try:
+            self.connection_params = params
+            self.connection = psycopg2.connect(
+                host=params.get('host', 'localhost'),
+                port=params.get('port', 5432),
+                dbname=params.get('dbname'),
+                user=params.get('user'),
+                password=params.get('password'),
+                options=params.get('options', '')
+            )
+            self.cursor = self.connection.cursor(
+                cursor_factory=psycopg2.extras.DictCursor
+            )
+            self.connected = true
+            return true
+        catch error:
+            print("Connection error: " + str(error))
+            return false
+            
+    def disconnect(self) -> bool:
+        """Close the database connection"""
+        if self.connected:
+            try:
+                self.cursor.close()
+                self.connection.close()
+                self.connected = false
+                return true
+            catch error:
+                print("Disconnection error: " + str(error))
+        return false
+        
+    def execute(self, query: str, params: array = []) -> array:
+        """
+        Execute a SQL query
+        
+        Args:
+        - query: SQL query string
+        - params: Optional parameters for prepared statements
+        
+        Returns:
+        - Array of result rows (empty for non-SELECT)
+        """
+        if not self.connected:
+            raise "Not connected to database"
+            
+        try:
+            self.cursor.execute(query, params)
+            
+            if query.strip().upper().startswith("SELECT"):
+                return [dict(row) for row in self.cursor.fetchall()]
+            else:
+                self.connection.commit()
+                return []
+        catch error:
+            self.connection.rollback()
+            raise "PostgreSQL Error: " + str(error)
+            
+    def execute_many(self, query: str, params_list: array) -> int:
+        """
+        Execute a query multiple times
+        
+        Args:
+        - query: SQL query string
+        - params_list: Array of parameter arrays
+        
+        Returns:
+        - Number of rows affected
+        """
+        if not self.connected:
+            raise "Not connected to database"
+            
+        try:
+            self.cursor.executemany(query, params_list)
+            self.connection.commit()
+            return self.cursor.rowcount
+        catch error:
+            self.connection.rollback()
+            raise "Bulk Execute Error: " + str(error)
+            
+    def call_procedure(self, proc_name: str, params: array = []) -> array:
+        """
+        Call a stored procedure
+        
+        Args:
+        - proc_name: Name of stored procedure
+        - params: Array of parameters
+        
+        Returns:
+        - Array of result rows
+        """
+        return self.execute(f"CALL {proc_name}({','.join(['%s']*len(params))})", params)
+        
+    def table_exists(self, table_name: str, schema: str = 'public') -> bool:
+        """
+        Check if a table exists in the database
+        
+        Args:
+        - table_name: Name of table to check
+        - schema: Schema name (default: public)
+        
+        Returns:
+        - Boolean indicating existence
+        """
+        query = """
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = %s AND table_name = %s
+        )
+        """
+        result = self.execute(query, [schema, table_name])
+        return result[0]['exists']
+        
+    def get_table_columns(self, table_name: str, schema: str = 'public') -> array:
+        """
+        Get column information for a table
+        
+        Args:
+        - table_name: Name of table
+        - schema: Schema name (default: public)
+        
+        Returns:
+        - Array of column information dictionaries
+        """
+        query = """
+        SELECT 
+            column_name, 
+            data_type,
+            is_nullable,
+            column_default
+        FROM information_schema.columns
+        WHERE table_schema = %s AND table_name = %s
+        ORDER BY ordinal_position
+        """
+        return self.execute(query, [schema, table_name])
+        
+    def begin_transaction(self, isolation_level: str = None):
+        """
+        Begin a transaction
+        
+        Args:
+        - isolation_level: Optional isolation level:
+            * READ UNCOMMITTED
+            * READ COMMITTED
+            * REPEATABLE READ
+            * SERIALIZABLE
+        """
+        if isolation_level:
+            self.execute(f"BEGIN TRANSACTION ISOLATION LEVEL {isolation_level}")
+        else:
+            self.execute("BEGIN TRANSACTION")
+        
+    def commit(self):
+        """Commit current transaction"""
+        self.execute("COMMIT")
+        
+    def rollback(self):
+        """Rollback current transaction"""
+        self.execute("ROLLBACK")
+        
+    def savepoint(self, name: str):
+        """Create a savepoint"""
+        self.execute(f"SAVEPOINT {name}")
+        
+    def rollback_to_savepoint(self, name: str):
+        """Rollback to a savepoint"""
+        self.execute(f"ROLLBACK TO SAVEPOINT {name}")
+        
+    def copy_from(self, file, table: str, columns: array = [], sep: str = '\t'):
+        """
+        Perform bulk copy from file
+        
+        Args:
+        - file: File-like object or path
+        - table: Target table name
+        - columns: Array of column names
+        - sep: Field separator
+        """
+        try:
+            self.cursor.copy_from(
+                file=file,
+                table=table,
+                columns=columns if columns else nil,
+                sep=sep
+            )
+            self.connection.commit()
+        catch error:
+            self.connection.rollback()
+            raise "COPY Error: " + str(error)
+            
+    def copy_to(self, file, query: str, sep: str = '\t'):
+        """
+        Perform bulk copy to file
+        
+        Args:
+        - file: File-like object or path
+        - query: Query to export
+        - sep: Field separator
+        """
+        try:
+            self.cursor.copy_expert(
+                f"COPY ({query}) TO STDOUT WITH DELIMITER '{sep}'",
+                file
+            )
+            self.connection.commit()
+        catch error:
+            self.connection.rollback()
+            raise "COPY Error: " + str(error)
+
+# Module exports
+export PostgresDriver

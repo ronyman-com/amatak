@@ -1,0 +1,6 @@
+VIProductVersion "1.0.0.0"
+VIAddVersionKey "ProductName" "Amatak Language"
+VIAddVersionKey "FileVersion" "1.0"
+VIAddVersionKey "ProductVersion" "1.0.0"
+VIAddVersionKey "CompanyName" "Amatak Foundations"
+VIAddVersionKey "FileDescription" "Amatak Language Installer"

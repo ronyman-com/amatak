@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="1">
+    <title>Amatak Language</title>
+    <background file="background.png" alignment="bottomleft" scaling="none"/>
+    <welcome file="welcome.html"/>
+    <license file="../../LICENSE.txt"/>
+    
+    <options customize="never" require-scripts="false"/>
+    
+    <choices-outline>
+        <line choice="default">
+            <line choice="${PKG_ID}"/>
+        </line>
+    </choices-outline>
+    
+    <choice id="default"/>
+    <choice id="${PKG_ID}" visible="false">
+        <pkg-ref id="${PKG_ID}"/>
+    </choice>
+    
+    <pkg-ref id="${PKG_ID}" version="${VERSION}" onConclusion="none">AmatakComponent.pkg</pkg-ref>
+</installer-gui-script>
