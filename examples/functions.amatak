@@ -1,9 +1,343 @@
-function add(a, b) {
-    return a + b
+// ======================
+// 1. CORE MATH FUNCTIONS
+// ======================
+function abs(x) {
+    if x < 0 { return -x }
+    return x
 }
-print add(10, 20)
-function greet(name) {
-    print("Hello, " + name + "!")
+
+function pow(base, exp) {
+    let result = 1
+    for let i = 0; i < exp; i = i + 1 {
+        result = result * base
+    }
+    return result
 }
-greet("Alice")
-greet("Bob")
+
+function round(num, decimals=0) {
+    let factor = pow(10, decimals)
+    return int(num * factor + 0.5) / factor
+}
+
+print "\n=== Math Functions ==="
+print "abs(-3.5): " + abs(-3.5)       // 3.5
+print "pow(3, 4): " + pow(3, 4)       // 81
+print "round(π): " + round(3.14159)    // 3
+print "round(π, 3): " + round(3.14159, 3) // 3.142
+
+// ======================
+// 2. STRING OPERATIONS
+// ======================
+function lower(s) {
+    let result = ""
+    for let i = 0; i < len(s); i = i + 1 {
+        result = result + toLower(s[i])
+    }
+    return result
+}
+
+function upper(s) {
+    let result = ""
+    for let i = 0; i < len(s); i = i + 1 {
+        result = result + toUpper(s[i])
+    }
+    return result
+}
+
+function substring(s, start, end) {
+    let result = ""
+    for let i = start; i < end; i = i + 1 {
+        result = result + s[i]
+    }
+    return result
+}
+
+print "\n=== String Functions ==="
+let greeting = "Hello World"
+print "lower('HELLO'): " + lower("HELLO")          // hello
+print "upper('world'): " + upper("world")          // WORLD
+print "substring(greeting, 0, 5): " + substring(greeting, 0, 5) // Hello
+
+// ======================
+// 3. ARRAY OPERATIONS
+// ======================
+function range(start, end, step=1) {
+    let result = []
+    let current = start
+    while current < end {
+        result.push(current)
+        current = current + step
+    }
+    return result
+}
+
+function map(arr, func) {
+    let result = []
+    for let item in arr {
+        result.push(func(item))
+    }
+    return result
+}
+
+function filter(arr, predicate) {
+    let result = []
+    for let item in arr {
+        if predicate(item) {
+            result.push(item)
+        }
+    }
+    return result
+}
+
+print "\n=== Array Functions ==="
+let numbers = range(1, 6) // [1,2,3,4,5]
+print "numbers: " + numbers
+
+let squares = map(numbers, (x) => x * x)
+print "squares: " + squares // [1,4,9,16,25]
+
+let evens = filter(numbers, (x) => x % 2 == 0)
+print "evens: " + evens // [2,4]
+
+// ======================
+// 4. HIGHER-ORDER FUNCTIONS
+// ======================
+function reduce(arr, func, initial) {
+    let accumulator = initial
+    for let item in arr {
+        accumulator = func(accumulator, item)
+    }
+    return accumulator
+}
+
+function compose(f, g) {
+    return (x) => f(g(x))
+}
+
+print "\n=== Higher-Order Functions ==="
+let sum = reduce(numbers, (a,b) => a + b, 0)
+print "sum 1-5: " + sum // 15
+
+let doubleThenSquare = compose((x) => x * x, (x) => x * 2)
+print "compose(5): " + doubleThenSquare(5) // (5*2)^2 = 100
+
+// ======================
+// 5. CLOSURES & FACTORIES
+// ======================
+function makeCounter() {
+    let count = 0
+    return () => {
+        count = count + 1
+        return count
+    }
+}
+
+function makeAdder(x) {
+    return (y) => x + y
+}
+
+print "\n=== Closure Examples ==="
+let counter = makeCounter()
+print "counter(): " + counter() // 1
+print "counter(): " + counter() // 2
+
+let add10 = makeAdder(10)
+print "add10(5): " + add10(5) // 15
+
+// ======================
+// 6. RECURSIVE FUNCTIONS
+// ======================
+function factorial(n) {
+    if n <= 1 { return 1 }
+    return n * factorial(n - 1)
+}
+
+function fibonacci(n) {
+    if n <= 1 { return n }
+    return fibonacci(n-1) + fibonacci(n-2)
+}
+
+print "\n=== Recursive Functions ==="
+print "factorial(5): " + factorial(5) // 120
+print "fibonacci(8): " + fibonacci(8) // 21
+
+// ======================
+// 7. UTILITY FUNCTIONS
+// ======================
+function max(a, b) {
+    return a > b ? a : b
+}
+
+function min(a, b) {
+    return a < b ? a : b
+}
+
+print "\n=== Utility Functions ==="
+print "max(3,9): " + max(3,9) // 9
+print "min(3,9): " + min(3,9) // 3
+
+
+
+
+
+
+// ======================
+// 1. FILE I/O OPERATIONS
+// ======================
+function readFile(path) {
+    try {
+        let file = open(path, "r")
+        let content = file.read()
+        file.close()
+        return content
+    } catch e {
+        print("Error reading file: " + e)
+        return null
+    }
+}
+
+function writeFile(path, content) {
+    try {
+        let file = open(path, "w")
+        file.write(content)
+        file.close()
+        return true
+    } catch e {
+        print("Error writing file: " + e)
+        return false
+    }
+}
+
+print "\n=== File I/O ==="
+let success = writeFile("test.txt", "Hello File I/O!")
+if success {
+    let content = readFile("test.txt")
+    print "File content: " + content
+}
+
+// ======================
+// 2. DICTIONARY/OBJECT OPERATIONS
+// ======================
+function createPerson(name, age) {
+    return {
+        "name": name,
+        "age": age,
+        "greet": function() {
+            return "Hello, my name is " + this.name
+        }
+    }
+}
+
+function mergeObjects(obj1, obj2) {
+    let result = {}
+    for let key in obj1 {
+        result[key] = obj1[key]
+    }
+    for let key in obj2 {
+        result[key] = obj2[key]
+    }
+    return result
+}
+
+print "\n=== Object Operations ==="
+let person = createPerson("Alice", 30)
+print person.greet()  // "Hello, my name is Alice"
+print "Age: " + person.age
+
+let stats = {"level": 5, "score": 1000}
+let merged = mergeObjects(person, stats)
+print "Merged: " + merged
+
+// ======================
+// 3. ERROR HANDLING
+// ======================
+function divideSafe(a, b) {
+    if b == 0 {
+        throw "Division by zero"
+    }
+    return a / b
+}
+
+function tryOperations() {
+    try {
+        print "10 / 2 = " + divideSafe(10, 2)
+        print "10 / 0 = " + divideSafe(10, 0)
+    } catch e {
+        print "Caught error: " + e
+    } finally {
+        print "Operation attempted"
+    }
+}
+
+print "\n=== Error Handling ==="
+tryOperations()
+
+// ======================
+// 4. ASYNC/PROMISE OPERATIONS
+// ======================
+function fetchData(url) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if url.startsWith("https://") {
+                resolve({"data": "Sample response from " + url})
+            } else {
+                reject("Invalid URL scheme")
+            }
+        }, 1000)
+    })
+}
+
+async function getData() {
+    try {
+        print "Fetching data..."
+        let response = await fetchData("https://api.example.com")
+        print "Received: " + response.data
+    } catch e {
+        print "Error: " + e
+    }
+}
+
+print "\n=== Async/Promise ==="
+// Run async code
+let promise = getData()
+
+// Promise chaining
+fetchData("https://api.example.com/items")
+    .then(data => {
+        print "Promise resolved: " + data.data
+        return data.data.length
+    })
+    .then(length => {
+        print "Data length: " + length
+    })
+    .catch(err => {
+        print "Promise rejected: " + err
+    })
+
+// ======================
+// 5. COMPLETE EXAMPLE
+// ======================
+async function processUserData(userId) {
+    try {
+        // Simulate API calls
+        let userPromise = fetchData("https://api.example.com/users/" + userId)
+        let ordersPromise = fetchData("https://api.example.com/orders?user=" + userId)
+        
+        let [user, orders] = await Promise.all([userPromise, ordersPromise])
+        
+        let result = {
+            "user": user.data,
+            "orders": orders.data,
+            "timestamp": now()
+        }
+        
+        writeFile("user_" + userId + ".json", jsonStringify(result))
+        print "Processing complete"
+    } catch e {
+        print "Failed to process: " + e
+        throw e
+    }
+}
+
+print "\n=== Complete Workflow ==="
+processUserData(123)
