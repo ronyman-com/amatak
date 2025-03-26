@@ -1,0 +1,310 @@
+// Amatak CSS Runtime
+// Dynamic CSS management for web components
+
+import parser from ./parser.amatak
+import dom from amatak.stdlib.web.dom
+from amatak.error_handling import error_handler
+from amatak.security.middleware import security_middleware
+
+class CSSRuntime:
+    """
+    Dynamic CSS Runtime System
+    
+    Features:
+    - Dynamic stylesheet management
+    - Theme switching
+    - Responsive style adjustments
+    - Animation handling
+    - Style inheritance
+    - Performance monitoring
+    """
+    
+    def __init__(self):
+        self._stylesheets = {}
+        self._active_themes = {}
+        self._media_queries = {}
+        self._animations = {}
+        self._observer = None
+        self._performance = CSSPerformanceMonitor()
+        
+        # Initialize with base styles
+        self._load_base_styles()
+        
+    @security_middleware.secure_operation
+    def load_stylesheet(self, name: str, css_text: str, scope: str = 'global'):
+        """
+        Load and parse a stylesheet
+        
+        Args:
+            name: Identifier for the stylesheet
+            css_text: CSS content to load
+            scope: 'global' or component-specific scope
+        """
+        parsed = parser.parse(css_text)
+        self._stylesheets[name] = {
+            'parsed': parsed,
+            'scope': scope,
+            'elements': []
+        }
+        
+        # Apply to existing elements if global
+        if scope == 'global':
+            self._apply_global_styles(parsed)
+            
+        self._performance.log_load(name, len(css_text))
+        
+    @error_handler.wrap_operation
+    def apply_styles(self, element, styles: dict, scope_id: str = None):
+        """
+        Apply styles to an element with optional scoping
+        
+        Args:
+            element: Target DOM element
+            styles: Style rules to apply
+            scope_id: Component scope identifier
+        """
+        if not element or not styles:
+            return
+            
+        try:
+            # Track element for dynamic updates
+            if scope_id:
+                self._track_scoped_element(element, scope_id)
+                
+            # Apply through parser
+            parser.apply(element, styles, scope_id)
+            
+            # Record performance
+            self._performance.log_apply(element, len(styles))
+            
+        except error as e:
+            error_handler.log_error(e, {
+                'action': 'runtime_apply_styles',
+                'element': str(element),
+                'scope_id': scope_id
+            })
+            
+    def set_theme(self, theme_name: str, components: list = None):
+        """
+        Activate a theme for specific or all components
+        
+        Args:
+            theme_name: Name of theme to activate
+            components: List of component scopes or None for all
+        """
+        if theme_name not in self._stylesheets:
+            error_handler.log_warning(f"Theme '{theme_name}' not loaded")
+            return
+            
+        theme = self._stylesheets[theme_name]
+        
+        if components is None:
+            # Apply to all components
+            self._active_themes['global'] = theme_name
+            self._apply_global_styles(theme['parsed'])
+        else:
+            # Apply to specific components
+            for scope_id in components:
+                self._active_themes[scope_id] = theme_name
+                self._apply_component_theme(scope_id, theme)
+                
+    def watch_media(self, query: str, callback: callable):
+        """
+        Watch media queries and trigger callbacks
+        
+        Args:
+            query: Media query string
+            callback: Function to call when query matches
+        """
+        if query not in self._media_queries:
+            mql = window.matchMedia(query)
+            self._media_queries[query] = {
+                'mql': mql,
+                'callbacks': []
+            }
+            mql.onchange = lambda e: self._handle_media_change(query, e)
+            
+        self._media_queries[query]['callbacks'].append(callback)
+        
+        # Initial check
+        if mql.matches:
+            callback(true)
+            
+    def define_animation(self, name: str, keyframes: dict):
+        """
+        Define a CSS animation
+        
+        Args:
+            name: Animation identifier
+            keyframes: {
+                'from': {styles},
+                'to': {styles},
+                'percent': {styles}  # e.g., '50': {styles}
+            }
+        """
+        # Convert to CSS keyframes format
+        css_text = self._build_keyframes(name, keyframes)
+        self._animations[name] = css_text
+        
+        # Inject into document
+        style_id = f"animation-{name}"
+        if not dom.select(f"#{style_id}"):
+            style = dom.create('style')
+            style.id = style_id
+            style.textContent = css_text
+            document.head.append(style)
+            
+    def animate(self, element, animation_name: str, duration: str = '1s'):
+        """
+        Apply animation to element
+        
+        Args:
+            element: Target element
+            animation_name: Predefined animation name
+            duration: Animation duration
+        """
+        if animation_name not in self._animations:
+            error_handler.log_warning(f"Animation '{animation_name}' not defined")
+            return
+            
+        element.style.animation = f"{animation_name} {duration}"
+        
+    # Private methods
+    
+    def _load_base_styles(self):
+        """Load essential base styles"""
+        base_styles = '''
+            :host {
+                display: block;
+                box-sizing: border-box;
+            }
+            [hidden] {
+                display: none !important;
+            }
+        '''
+        self.load_stylesheet('base', base_styles, 'global')
+        
+    def _apply_global_styles(self, styles: dict):
+        """Apply styles globally"""
+        for selector, rules in styles.items():
+            elements = dom.select_all(selector)
+            for el in elements:
+                parser.apply(el, rules)
+                
+    def _apply_component_theme(self, scope_id: str, theme: dict):
+        """Apply theme to specific component scope"""
+        elements = self._get_scoped_elements(scope_id)
+        for el in elements:
+            parser.apply(el, theme['parsed'], scope_id)
+            
+    def _track_scoped_element(self, element, scope_id: str):
+        """Track element for scoped style updates"""
+        if scope_id not in self._stylesheets:
+            self._stylesheets[scope_id] = {
+                'elements': [],
+                'parsed': {},
+                'scope': scope_id
+            }
+        self._stylesheets[scope_id]['elements'].append(element)
+        
+    def _get_scoped_elements(self, scope_id: str) -> list:
+        """Get all elements for a given scope"""
+        return self._stylesheets.get(scope_id, {}).get('elements', [])
+        
+    def _handle_media_change(self, query: str, event):
+        """Handle media query changes"""
+        callbacks = self._media_queries.get(query, {}).get('callbacks', [])
+        for cb in callbacks:
+            cb(event.matches)
+            
+    def _build_keyframes(self, name: str, keyframes: dict) -> str:
+        """Convert keyframes dict to CSS text"""
+        css_text = f"@keyframes {name} {{\n"
+        
+        for frame, styles in keyframes.items():
+            if frame == 'from':
+                css_text += "  from {\n"
+            elif frame == 'to':
+                css_text += "  to {\n"
+            elif frame.isdigit():
+                css_text += f"  {frame}% {{\n"
+                
+            for prop, value in styles.items():
+                css_text += f"    {prop}: {value};\n"
+                
+            css_text += "  }\n"
+            
+        css_text += "}\n"
+        return css_text
+        
+    def _setup_observer(self):
+        """Setup MutationObserver for dynamic style updates"""
+        if self._observer:
+            return
+            
+        self._observer = new MutationObserver((mutations) => {
+            for mutation in mutations:
+                if mutation.type == 'attributes' and mutation.attributeName === 'class':
+                    self._handle_class_change(mutation.target)
+        })
+        
+        self._observer.observe(document.body, {
+            subtree: true,
+            attributeFilter: ['class']
+        })
+        
+    def _handle_class_change(self, element):
+        """Handle class changes for dynamic styling"""
+        scope_id = element.getAttribute('data-scope')
+        if scope_id:
+            # Reapply component styles
+            styles = self._stylesheets.get(scope_id, {}).get('parsed', {})
+            parser.apply(element, styles, scope_id)
+            
+        # Reapply active themes
+        for theme_scope, theme_name in self._active_themes.items():
+            if theme_scope == 'global' or theme_scope == scope_id:
+                theme = self._stylesheets.get(theme_name)
+                if theme:
+                    parser.apply(element, theme['parsed'], scope_id)
+
+class CSSPerformanceMonitor:
+    """Track and optimize CSS performance"""
+    
+    def __init__(self):
+        self._metrics = {
+            'load_times': {},
+            'apply_counts': {},
+            'style_recalculations': 0
+        }
+        
+    def log_load(self, name: str, size: int):
+        """Log stylesheet load"""
+        self._metrics['load_times'][name] = {
+            'time': performance.now(),
+            'size': size
+        }
+        
+    def log_apply(self, element, rule_count: int):
+        """Log style application"""
+        tag_name = element.tagName.lower()
+        self._metrics['apply_counts'][tag_name] = self._metrics['apply_counts'].get(tag_name, 0) + 1
+        
+    def get_metrics(self) -> dict:
+        """Get performance metrics"""
+        return {
+            'loaded_sheets': len(self._metrics['load_times']),
+            'total_rules_applied': sum(self._metrics['apply_counts'].values()),
+            'dom_elements_styled': self._metrics['apply_counts']
+        }
+        
+    def optimize(self):
+        """Run CSS optimizations based on metrics"""
+        # Potential optimizations:
+        # - Combine frequently used selectors
+        # - Inline critical CSS
+        # - Remove unused styles
+        pass
+
+# Export initialized runtime instance
+export default CSSRuntime()

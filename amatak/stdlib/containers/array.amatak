@@ -1,0 +1,250 @@
+// Amatak Array Container
+// High-performance array implementation with functional methods
+
+import { performance } from amatak.stdlib.system
+from amatak.error_handling import error_handler
+from amatak.security.middleware import security_middleware
+
+class Array:
+    """
+    Enhanced Array implementation with:
+    - Type safety
+    - Functional programming methods
+    - Performance optimizations
+    - Memory management
+    """
+    
+    def __init__(self, items=None, type_hint=None):
+        """
+        Initialize array with optional items and type hint
+        
+        Args:
+            items: Initial items (iterable)
+            type_hint: Optional type restriction (string or type)
+        """
+        self._storage = []
+        self._type = type_hint
+        self._length = 0
+        self._capacity = 0
+        self._version = 0  # For iterator invalidation
+        
+        if items:
+            self.extend(items)
+            
+    @property
+    def length(self) -> int:
+        """Get current length of array"""
+        return self._length
+        
+    @security_middleware.secure_operation
+    def push(self, item):
+        """Add item to end of array with type checking"""
+        self._validate_item(item)
+        self._ensure_capacity()
+        self._storage[self._length] = item
+        self._length += 1
+        self._version += 1
+        
+    @error_handler.wrap_operation
+    def pop(self):
+        """Remove and return last item"""
+        if self._length == 0:
+            raise IndexError("Cannot pop from empty array")
+            
+        self._length -= 1
+        item = self._storage[self._length]
+        self._storage[self._length] = None  # Allow GC
+        self._version += 1
+        return item
+        
+    def at(self, index: int):
+        """Safe index access with negative indices"""
+        if index < 0:
+            index = self._length + index
+            
+        if index < 0 or index >= self._length:
+            return None
+            
+        return self._storage[index]
+        
+    @security_middleware.secure_operation
+    def insert(self, index: int, item):
+        """Insert item at specific index"""
+        self._validate_item(item)
+        
+        if index < 0 or index > self._length:
+            raise IndexError("Index out of bounds")
+            
+        self._ensure_capacity()
+        
+        # Shift elements
+        for i in range(self._length, index, -1):
+            self._storage[i] = self._storage[i-1]
+            
+        self._storage[index] = item
+        self._length += 1
+        self._version += 1
+        
+    def remove(self, index: int):
+        """Remove item at index"""
+        if index < 0 or index >= self._length:
+            raise IndexError("Index out of bounds")
+            
+        item = self._storage[index]
+        
+        # Shift elements
+        for i in range(index, self._length - 1):
+            self._storage[i] = self._storage[i+1]
+            
+        self._length -= 1
+        self._storage[self._length] = None  # Allow GC
+        self._version += 1
+        return item
+        
+    def extend(self, items):
+        """Add multiple items to array"""
+        for item in items:
+            self.push(item)
+            
+    def clear(self):
+        """Remove all items"""
+        self._storage = []
+        self._length = 0
+        self._capacity = 0
+        self._version += 1
+        
+    def slice(self, start: int = 0, end: int = None) -> 'Array':
+        """Return new array with sliced items"""
+        end = end or self._length
+        return Array(self._storage[start:end], self._type)
+        
+    # Functional methods
+    
+    def map(self, fn: callable) -> 'Array':
+        """Map function over array items"""
+        result = Array(type_hint=self._type)
+        for item in self:
+            result.push(fn(item))
+        return result
+        
+    def filter(self, fn: callable) -> 'Array':
+        """Filter array items"""
+        result = Array(type_hint=self._type)
+        for item in self:
+            if fn(item):
+                result.push(item)
+        return result
+        
+    def reduce(self, fn: callable, initial=None):
+        """Reduce array to single value"""
+        accumulator = initial
+        start = 0
+        
+        if initial is None and self._length > 0:
+            accumulator = self._storage[0]
+            start = 1
+            
+        for i in range(start, self._length):
+            accumulator = fn(accumulator, self._storage[i], i, self)
+            
+        return accumulator
+        
+    def for_each(self, fn: callable):
+        """Execute function for each item"""
+        for item in self:
+            fn(item)
+            
+    # Search methods
+    
+    def find(self, fn: callable):
+        """Find first item matching predicate"""
+        for item in self:
+            if fn(item):
+                return item
+        return None
+        
+    def includes(self, item) -> bool:
+        """Check if array contains item"""
+        for i in range(self._length):
+            if self._storage[i] == item:
+                return True
+        return False
+        
+    def index_of(self, item) -> int:
+        """Find index of item"""
+        for i in range(self._length):
+            if self._storage[i] == item:
+                return i
+        return -1
+        
+    # Sorting
+    
+    def sort(self, compare_fn: callable = None):
+        """Sort array in place"""
+        if compare_fn:
+            self._storage[:self._length] = sorted(self._storage[:self._length], key=compare_fn)
+        else:
+            self._storage[:self._length] = sorted(self._storage[:self._length])
+        self._version += 1
+        
+    # Memory management
+    
+    def _ensure_capacity(self):
+        """Ensure storage has capacity for new items"""
+        if self._length == self._capacity:
+            new_capacity = max(4, self._capacity * 2)
+            new_storage = [None] * new_capacity
+            for i in range(self._length):
+                new_storage[i] = self._storage[i]
+            self._storage = new_storage
+            self._capacity = new_capacity
+            
+    def _validate_item(self, item):
+        """Validate item type if type hint is set"""
+        if self._type and not isinstance(item, self._type):
+            raise TypeError(f"Array requires items of type {self._type}")
+            
+    # Iterator protocol
+    
+    def __iter__(self):
+        return ArrayIterator(self)
+        
+    def __str__(self):
+        return f"Array({self._storage[:self._length]})"
+        
+    # Indexing support
+    
+    def __getitem__(self, index):
+        return self.at(index)
+        
+    def __setitem__(self, index, value):
+        if index < 0 or index >= self._length:
+            raise IndexError("Index out of bounds")
+        self._validate_item(value)
+        self._storage[index] = value
+        self._version += 1
+        
+    def __len__(self):
+        return self._length
+
+class ArrayIterator:
+    """Iterator for Array with version checking"""
+    
+    def __init__(self, array):
+        self._array = array
+        self._index = 0
+        self._version = array._version
+        
+    def __next__(self):
+        if self._version != self._array._version:
+            raise RuntimeError("Array modified during iteration")
+            
+        if self._index < self._array._length:
+            item = self._array._storage[self._index]
+            self._index += 1
+            return item
+            
+        raise StopIteration()
+
+# Export default array implementation
+export default Array

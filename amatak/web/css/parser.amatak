@@ -1,0 +1,242 @@
+// Amatak CSS Parser
+// Provides CSS parsing and style management for web components
+
+import regex from amatak.stdlib.strings
+from amatak.error_handling import error_handler
+from amatak.security.middleware import security_middleware
+
+class CSSParser:
+    """
+    CSS Parser and Style Manager
+    
+    Features:
+    - Parse CSS text into style objects
+    - Scope styles to components
+    - Handle CSS custom properties (variables)
+    - Validate CSS properties
+    - Minify CSS output
+    """
+    
+    def __init__(self):
+        self._cache = {}
+        self._variables = {}
+        self._valid_properties = self._load_css_spec()
+        
+    @error_handler.wrap_operation
+    def parse(self, css_text: str) -> dict:
+        """
+        Parse CSS text into structured style rules
+        
+        Args:
+            css_text: Raw CSS text to parse
+            
+        Returns:
+            Dictionary of parsed style rules {selector: {property: value}}
+        """
+        if not css_text:
+            return {}
+            
+        # Check cache first
+        cache_key = hash(css_text)
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+            
+        # Security sanitization
+        sanitized = security_middleware.sanitize_input(css_text)
+        
+        # Remove comments
+        clean_css = regex.replace(r'\/\*.*?\*\/', '', sanitized, flags=regex.DOTALL)
+        
+        # Parse rules
+        rules = {}
+        rule_blocks = regex.split(r'(?<=})\s*', clean_css)
+        
+        for block in rule_blocks:
+            if not block.strip():
+                continue
+                
+            try:
+                # Split selector and declarations
+                selector, declarations = self._split_rule_block(block)
+                if not selector or not declarations:
+                    continue
+                    
+                # Parse individual rules
+                parsed_rules = self._parse_declarations(declarations)
+                if parsed_rules:
+                    rules[selector] = parsed_rules
+                    
+            except error as e:
+                error_handler.log_error(e, {
+                    'action': 'css_parse',
+                    'block': block[:100] + '...' if len(block) > 100 else block
+                })
+                
+        self._cache[cache_key] = rules
+        return rules
+        
+    def apply(self, element, styles: dict, scope_id: str = None):
+        """
+        Apply styles to a DOM element with optional scoping
+        
+        Args:
+            element: Target DOM element
+            styles: Style rules to apply
+            scope_id: Optional scope identifier for component isolation
+        """
+        if not element or not styles:
+            return
+            
+        try:
+            # Handle scoped styles
+            if scope_id:
+                scoped_styles = self._scope_styles(styles, scope_id)
+                style_tag = self._create_style_tag(scoped_styles, scope_id)
+                document.head.append(style_tag)
+            else:
+                # Inline styles for component-specific styling
+                for prop, value in styles.items():
+                    if self._is_valid_property(prop):
+                        element.style[prop] = value
+                        
+        except error as e:
+            error_handler.log_error(e, {
+                'action': 'css_apply',
+                'element': str(element),
+                'scope_id': scope_id
+            })
+            
+    def set_global_variable(self, name: str, value: str):
+        """
+        Set a CSS global custom property (variable)
+        
+        Args:
+            name: Variable name (must start with --)
+            value: Variable value
+        """
+        if not name.startswith('--'):
+            name = '--' + name
+            
+        self._variables[name] = value
+        document.documentElement.style.setProperty(name, value)
+        
+    def minify(self, css_text: str) -> str:
+        """
+        Minify CSS text by removing unnecessary characters
+        
+        Args:
+            css_text: CSS text to minify
+            
+        Returns:
+            Minified CSS string
+        """
+        # Remove comments
+        minified = regex.sub(r'\/\*.*?\*\/', '', css_text, flags=regex.DOTALL)
+        
+        # Remove whitespace
+        minified = regex.sub(r'\s+', ' ', minified)
+        minified = regex.sub(r'\s*([{},:;])\s*', r'\1', minified)
+        
+        # Remove trailing semicolons
+        minified = regex.sub(r';}', '}', minified)
+        
+        return minified.strip()
+        
+    # Private methods
+    
+    def _split_rule_block(self, block: str) -> (str, str):
+        """Split CSS rule block into selector and declarations"""
+        match = regex.match(r'([^{]+)\{([^}]*)\}', block.strip())
+        if not match:
+            return None, None
+            
+        selector = match.group(1).strip()
+        declarations = match.group(2).strip()
+        return selector, declarations
+        
+    def _parse_declarations(self, declarations: str) -> dict:
+        """Parse CSS declarations into property:value pairs"""
+        rules = {}
+        declarations = declarations.split(';')
+        
+        for decl in declarations:
+            if not decl.strip():
+                continue
+                
+            try:
+                prop, value = decl.split(':', 1)
+                prop = prop.strip()
+                value = value.strip()
+                
+                if self._is_valid_property(prop):
+                    # Handle CSS variables
+                    if value.startswith('var(--'):
+                        var_name = value[4:-1]  # Remove 'var(' and ')'
+                        value = self._variables.get(var_name, value)
+                        
+                    rules[prop] = value
+                    
+            except error as e:
+                error_handler.log_error(e, {
+                    'action': 'css_parse_declaration',
+                    'declaration': decl
+                })
+                
+        return rules
+        
+    def _is_valid_property(self, prop: str) -> bool:
+        """Check if CSS property is valid/supported"""
+        # Convert camelCase to kebab-case
+        normalized = regex.sub(r'([A-Z])', r'-\1', prop).lower()
+        return normalized in self._valid_properties
+        
+    def _scope_styles(self, styles: dict, scope_id: str) -> dict:
+        """Add scoping attribute to selectors"""
+        scoped = {}
+        for selector, rules in styles.items():
+            scoped_selector = self._transform_selector(selector, scope_id)
+            scoped[scoped_selector] = rules
+        return scoped
+        
+    def _transform_selector(self, selector: str, scope_id: str) -> str:
+        """
+        Transform selector to be scoped to component
+        
+        Examples:
+        - 'h1' -> 'h1[data-scope="xyz123"]'
+        - '.btn' -> '.btn[data-scope="xyz123"]'
+        - ':host' -> '[data-scope="xyz123"]'
+        - ':host(.dark)' -> '[data-scope="xyz123"].dark'
+        """
+        if selector.startswith(':host'):
+            # Handle :host pseudo-selector
+            inner = selector[5:].strip('()') or ''
+            return f'[data-scope="{scope_id}"]{inner}'
+        else:
+            return f'{selector}[data-scope="{scope_id}"]'
+            
+    def _create_style_tag(self, styles: dict, scope_id: str):
+        """Create a style tag with scoped CSS"""
+        css_text = ''
+        for selector, rules in styles.items():
+            declarations = '; '.join(f'{k}: {v}' for k, v in rules.items())
+            css_text += f'{selector} {{ {declarations}; }}\n'
+            
+        tag = document.createElement('style')
+        tag.setAttribute('data-scope', scope_id)
+        tag.textContent = self.minify(css_text)
+        return tag
+        
+    def _load_css_spec(self) -> set:
+        """Load set of valid CSS properties from specification"""
+        # In a real implementation, this would load from an external spec file
+        # Here's a representative subset
+        return {
+            'align-items', 'background', 'border', 'color', 'display',
+            'flex', 'font', 'grid', 'height', 'justify-content',
+            'margin', 'padding', 'position', 'text-align', 'width',
+            # Add all other standard CSS properties...
+        }
+
+# Export the parser instance
+export default CSSParser()

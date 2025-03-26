@@ -1,0 +1,214 @@
+// Amatak Dictionary Container
+// High-performance dictionary/hashmap implementation
+
+import { hash } from amatak.stdlib.strings
+from amatak.error_handling import error_handler
+from amatak.security.middleware import security_middleware
+
+class Dict:
+    """
+    Enhanced Dictionary implementation with:
+    - Type safety
+    - Ordered keys
+    - Memory efficiency
+    - Performance optimizations
+    """
+    
+    def __init__(self, items=None, key_type=None, value_type=None):
+        """
+        Initialize dictionary with optional items and type hints
+        
+        Args:
+            items: Initial items (iterable of key-value pairs)
+            key_type: Optional type restriction for keys
+            value_type: Optional type restriction for values
+        """
+        self._keys = []
+        self._values = []
+        self._index_map = {}  # key -> index
+        self._key_type = key_type
+        self._value_type = value_type
+        self._version = 0  # For iterator invalidation
+        
+        if items:
+            self.update(items)
+            
+    @property
+    def size(self) -> int:
+        """Get current size of dictionary"""
+        return len(self._keys)
+        
+    @security_middleware.secure_operation
+    def set(self, key, value):
+        """Set key-value pair with type checking"""
+        self._validate_key(key)
+        self._validate_value(value)
+        
+        if key in self._index_map:
+            index = self._index_map[key]
+            self._values[index] = value
+        else:
+            index = len(self._keys)
+            self._keys.append(key)
+            self._values.append(value)
+            self._index_map[key] = index
+            
+        self._version += 1
+        
+    def get(self, key, default=None):
+        """Get value for key or return default"""
+        if key not in self._index_map:
+            return default
+        return self._values[self._index_map[key]]
+        
+    def has(self, key) -> bool:
+        """Check if key exists"""
+        return key in self._index_map
+        
+    def delete(self, key):
+        """Delete key-value pair"""
+        if key not in self._index_map:
+            return False
+            
+        index = self._index_map[key]
+        
+        # Remove from keys and values
+        self._keys.pop(index)
+        self._values.pop(index)
+        
+        # Update index map for remaining keys
+        del self._index_map[key]
+        for i in range(index, len(self._keys)):
+            self._index_map[self._keys[i]] = i
+            
+        self._version += 1
+        return True
+        
+    def update(self, items):
+        """Update dictionary with multiple key-value pairs"""
+        for key, value in items:
+            self.set(key, value)
+            
+    def clear(self):
+        """Remove all items"""
+        self._keys = []
+        self._values = []
+        self._index_map = {}
+        self._version += 1
+        
+    def keys(self) -> list:
+        """Get list of keys"""
+        return self._keys.copy()
+        
+    def values(self) -> list:
+        """Get list of values"""
+        return self._values.copy()
+        
+    def items(self) -> list:
+        """Get list of key-value pairs"""
+        return list(zip(self._keys, self._values))
+        
+    # Functional methods
+    
+    def map(self, fn: callable) -> 'Dict':
+        """Map function over dictionary values"""
+        result = Dict(key_type=self._key_type, value_type=self._value_type)
+        for key, value in self.items():
+            result.set(key, fn(value, key, self))
+        return result
+        
+    def filter(self, fn: callable) -> 'Dict':
+        """Filter dictionary items"""
+        result = Dict(key_type=self._key_type, value_type=self._value_type)
+        for key, value in self.items():
+            if fn(value, key, self):
+                result.set(key, value)
+        return result
+        
+    def for_each(self, fn: callable):
+        """Execute function for each key-value pair"""
+        for key, value in self.items():
+            fn(value, key, self)
+            
+    # Search methods
+    
+    def find(self, fn: callable) -> tuple:
+        """Find first key-value pair matching predicate"""
+        for key, value in self.items():
+            if fn(value, key, self):
+                return (key, value)
+        return (None, None)
+        
+    def some(self, fn: callable) -> bool:
+        """Check if any item matches predicate"""
+        for key, value in self.items():
+            if fn(value, key, self):
+                return True
+        return False
+        
+    def every(self, fn: callable) -> bool:
+        """Check if all items match predicate"""
+        for key, value in self.items():
+            if not fn(value, key, self):
+                return False
+        return True
+        
+    # Type validation
+    
+    def _validate_key(self, key):
+        """Validate key type if type hint is set"""
+        if self._key_type and not isinstance(key, self._key_type):
+            raise TypeError(f"Dict requires keys of type {self._key_type}")
+            
+    def _validate_value(self, value):
+        """Validate value type if type hint is set"""
+        if self._value_type and not isinstance(value, self._value_type):
+            raise TypeError(f"Dict requires values of type {self._value_type}")
+            
+    # Iterator protocol
+    
+    def __iter__(self):
+        return DictIterator(self)
+        
+    def __str__(self):
+        items = [f"{k!r}: {v!r}" for k, v in self.items()]
+        return f"Dict({{{', '.join(items)}}})"
+        
+    # Indexing support
+    
+    def __getitem__(self, key):
+        return self.get(key)
+        
+    def __setitem__(self, key, value):
+        self.set(key, value)
+        
+    def __delitem__(self, key):
+        self.delete(key)
+        
+    def __contains__(self, key):
+        return self.has(key)
+        
+    def __len__(self):
+        return self.size
+
+class DictIterator:
+    """Iterator for Dict with version checking"""
+    
+    def __init__(self, dictionary):
+        self._dict = dictionary
+        self._index = 0
+        self._version = dictionary._version
+        
+    def __next__(self):
+        if self._version != self._dict._version:
+            raise RuntimeError("Dictionary modified during iteration")
+            
+        if self._index < len(self._dict._keys):
+            key = self._dict._keys[self._index]
+            self._index += 1
+            return key
+            
+        raise StopIteration()
+
+# Export default dictionary implementation
+export default Dict

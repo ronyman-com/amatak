@@ -1,0 +1,187 @@
+// amatak/tests/stdlib/test_math.amatak
+// Amatak Math Library Tests
+
+import math from amatak.stdlib.math
+from amatak.errors import AmatakError
+
+class MathTestSuite {
+    func setup() {
+        // Initialize math instance
+        this.math = math
+        this.test_count = 0
+        this.passed = 0
+        this.failed = 0
+    }
+
+    func run_all_tests() {
+        print("Running Math Library Tests...\n")
+        
+        this.test_constants()
+        this.test_basic_operations()
+        this.test_power_and_roots()
+        this.test_logarithms()
+        this.test_trigonometry()
+        this.test_random_numbers()
+        this.test_statistics()
+        this.test_min_max()
+        this.test_clamp()
+        this.test_lerp()
+        
+        print("\nTest Results:")
+        print("Total tests: ", this.test_count)
+        print("Passed: ", this.passed)
+        print("Failed: ", this.failed)
+        
+        if this.failed > 0 {
+            exit(1)
+        }
+    }
+
+    func assert(condition, message = "Assertion failed") {
+        this.test_count += 1
+        if condition {
+            this.passed += 1
+        } else {
+            this.failed += 1
+            print("FAIL: ", message)
+        }
+    }
+
+    func assert_approx_equal(a, b, tolerance = 1e-9) {
+        this.test_count += 1
+        if this.math.abs(a - b) <= tolerance {
+            this.passed += 1
+        } else {
+            this.failed += 1
+            print("FAIL: Values not approximately equal: ", a, " != ", b)
+        }
+    }
+
+    func test_constants() {
+        print("Testing constants...")
+        this.assert(this.math.PI > 3.14159, "PI lower bound")
+        this.assert(this.math.PI < 3.14160, "PI upper bound")
+        this.assert(this.math.E > 2.71828, "E lower bound")
+        this.assert(this.math.E < 2.71829, "E upper bound")
+        this.assert(this.math.TAU > 6.28318, "TAU lower bound")
+        this.assert(this.math.TAU < 6.28319, "TAU upper bound")
+    }
+
+    func test_basic_operations() {
+        print("Testing basic operations...")
+        this.assert(this.math.abs(-5) == 5, "abs(-5)")
+        this.assert(this.math.abs(3.14) == 3.14, "abs(3.14)")
+        this.assert(this.math.floor(3.9) == 3, "floor(3.9)")
+        this.assert(this.math.ceil(3.1) == 4, "ceil(3.1)")
+        this.assert(this.math.round(3.5) == 4, "round(3.5)")
+        this.assert(this.math.round(3.4) == 3, "round(3.4)")
+    }
+
+    func test_power_and_roots() {
+        print("Testing power and roots...")
+        this.assert(this.math.sqrt(16) == 4, "sqrt(16)")
+        this.assert(this.math.pow(2, 3) == 8, "pow(2, 3)")
+        this.assert_approx_equal(this.math.pow(4, 0.5), 2)
+        this.assert_approx_equal(this.math.exp(1), this.math.E)
+        
+        // Test error case
+        error_occurred = false
+        try {
+            this.math.sqrt(-1)
+        } catch e {
+            error_occurred = true
+        }
+        this.assert(error_occurred, "sqrt(-1) should error")
+    }
+
+    func test_logarithms() {
+        print("Testing logarithms...")
+        this.assert_approx_equal(this.math.log(this.math.E), 1.0)
+        this.assert(this.math.log10(100) == 2.0, "log10(100)")
+        this.assert(this.math.log2(8) == 3.0, "log2(8)")
+        
+        // Test error case
+        error_occurred = false
+        try {
+            this.math.log(0)
+        } catch e {
+            error_occurred = true
+        }
+        this.assert(error_occurred, "log(0) should error")
+    }
+
+    func test_trigonometry() {
+        print("Testing trigonometry...")
+        this.assert_approx_equal(this.math.sin(this.math.PI/2), 1.0)
+        this.assert_approx_equal(this.math.cos(this.math.PI), -1.0)
+        this.assert_approx_equal(this.math.tan(this.math.PI/4), 1.0)
+        
+        // Test degrees conversion
+        this.assert_approx_equal(this.math.sin(this.math.radians(90)), 1.0)
+        this.assert_approx_equal(this.math.degrees(this.math.PI), 180.0)
+    }
+
+    func test_random_numbers() {
+        print("Testing random numbers...")
+        for i in range(10) {
+            r = this.math.random()
+            this.assert(r >= 0, "random() lower bound")
+            this.assert(r <= 1, "random() upper bound")
+        }
+        
+        for i in range(10) {
+            r = this.math.rand_int(1, 10)
+            this.assert(r >= 1, "rand_int() lower bound")
+            this.assert(r <= 10, "rand_int() upper bound")
+        }
+        
+        // Test error case
+        error_occurred = false
+        try {
+            this.math.rand_int(10, 1)
+        } catch e {
+            error_occurred = true
+        }
+        this.assert(error_occurred, "rand_int(10,1) should error")
+    }
+
+    func test_statistics() {
+        print("Testing statistics...")
+        data = [1.0, 2.0, 3.0, 4.0, 5.0]
+        
+        this.assert(this.math.mean(data) == 3.0, "mean")
+        this.assert(this.math.median(data) == 3.0, "median")
+        this.assert_approx_equal(this.math.stdev(data), 1.5811)
+        this.assert_approx_equal(this.math.variance(data), 2.5)
+    }
+
+    func test_min_max() {
+        print("Testing min/max...")
+        this.assert(this.math.max(1, 2, 3) == 3, "max(1,2,3)")
+        this.assert(this.math.min(1, 2, 3) == 1, "min(1,2,3)")
+        this.assert(this.math.max([1, 2, 3]) == 3, "max([1,2,3])")
+        this.assert(this.math.min([1, 2, 3]) == 1, "min([1,2,3])")
+    }
+
+    func test_clamp() {
+        print("Testing clamp...")
+        this.assert(this.math.clamp(5, 0, 10) == 5, "clamp middle")
+        this.assert(this.math.clamp(-1, 0, 10) == 0, "clamp low")
+        this.assert(this.math.clamp(11, 0, 10) == 10, "clamp high")
+    }
+
+    func test_lerp() {
+        print("Testing lerp...")
+        this.assert(this.math.lerp(0, 10, 0.5) == 5, "lerp middle")
+        this.assert(this.math.lerp(10, 20, 0.25) == 12.5, "lerp partial")
+    }
+}
+
+// Main test execution
+func main() {
+    test_suite = MathTestSuite()
+    test_suite.setup()
+    test_suite.run_all_tests()
+}
+
+main()

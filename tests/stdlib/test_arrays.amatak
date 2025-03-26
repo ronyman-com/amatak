@@ -1,0 +1,160 @@
+// amatak/tests/stdlib/test_arrays.amatak
+// Amatak Array Container Tests
+
+import array from amatak.stdlib.containers.array
+from amatak.errors import AmatakError
+
+class ArrayTestSuite {
+    func setup() {
+        this.test_count = 0
+        this.passed = 0
+        this.failed = 0
+    }
+
+    func assert(condition, message = "Assertion failed") {
+        this.test_count += 1
+        if condition {
+            this.passed += 1
+        } else {
+            this.failed += 1
+            print("FAIL: ", message)
+        }
+    }
+
+    func run_all_tests() {
+        print("Running Array Tests...\n")
+        
+        this.test_creation()
+        this.test_basic_operations()
+        this.test_indexing()
+        this.test_iteration()
+        this.test_methods()
+        this.test_errors()
+        
+        print("\nTest Results:")
+        print("Total tests: ", this.test_count)
+        print("Passed: ", this.passed)
+        print("Failed: ", this.failed)
+        
+        if this.failed > 0 {
+            exit(1)
+        }
+    }
+
+    func test_creation() {
+        print("Testing array creation...")
+        // Empty array
+        arr = array.Array()
+        this.assert(arr.length == 0, "Empty array length")
+        
+        // Array with initial items
+        arr2 = array.Array([1, 2, 3])
+        this.assert(arr2.length == 3, "Initialized array length")
+        this.assert(arr2.at(0) == 1, "First element")
+    }
+
+    func test_basic_operations() {
+        print("Testing basic operations...")
+        arr = array.Array()
+        
+        // Push/pop
+        arr.push(10)
+        this.assert(arr.length == 1, "Length after push")
+        this.assert(arr.pop() == 10, "Popped value")
+        this.assert(arr.length == 0, "Length after pop")
+        
+        // Extend
+        arr.extend([1, 2, 3])
+        this.assert(arr.length == 3, "Length after extend")
+    }
+
+    func test_indexing() {
+        print("Testing indexing...")
+        arr = array.Array([10, 20, 30])
+        
+        // Positive indices
+        this.assert(arr.at(0) == 10, "Index 0")
+        this.assert(arr.at(1) == 20, "Index 1")
+        
+        // Negative indices
+        this.assert(arr.at(-1) == 30, "Index -1")
+        this.assert(arr.at(-2) == 20, "Index -2")
+        
+        // Out of bounds
+        this.assert(arr.at(5) == null, "Out of bounds positive")
+        this.assert(arr.at(-5) == null, "Out of bounds negative")
+    }
+
+    func test_iteration() {
+        print("Testing iteration...")
+        arr = array.Array([1, 2, 3])
+        sum = 0
+        count = 0
+        
+        for item in arr {
+            sum = sum + item
+            count = count + 1
+        }
+        
+        this.assert(sum == 6, "Sum during iteration")
+        this.assert(count == 3, "Count during iteration")
+    }
+
+    func test_methods() {
+        print("Testing array methods...")
+        arr = array.Array([1, 2, 3, 4, 5])
+        
+        // Map
+        mapped = arr.map(func(x) { return x * 2 })
+        this.assert(mapped.length == 5, "Mapped length")
+        this.assert(mapped.at(0) == 2, "First mapped value")
+        
+        // Filter
+        filtered = arr.filter(func(x) { 
+            is_even = x / 2 == math.floor(x / 2)
+            return is_even
+        })
+        this.assert(filtered.length == 2, "Filtered length")
+        this.assert(filtered.at(0) == 2, "First filtered value")
+        
+        // Reduce
+        sum = arr.reduce(func(acc, x) { return acc + x }, 0)
+        this.assert(sum == 15, "Reduce sum")
+        
+        // Find
+        found = arr.find(func(x) { return x > 3 })
+        this.assert(found == 4, "Find first match")
+    }
+
+    func test_errors() {
+        print("Testing error cases...")
+        arr = array.Array()
+        
+        // Pop empty array
+        error_occurred = false
+        try {
+            arr.pop()
+        } catch e {
+            error_occurred = true
+        }
+        this.assert(error_occurred, "Pop from empty array")
+        
+        // Invalid index
+        error_occurred = false
+        try {
+            arr.at(0)
+        } catch e {
+            error_occurred = true
+        }
+        this.assert(error_occurred == false, "at() should handle invalid indices")
+    }
+}
+
+// Main test execution
+func main() {
+    test_suite = ArrayTestSuite()
+    test_suite.setup()
+    test_suite.run_all_tests()
+}
+
+main()

@@ -2,6 +2,7 @@
 """Amatak Language Command Line Interface"""
 
 import sys
+import os
 from typing import Optional
 from amatak.runtime import AMatakRuntime
 from amatak.errors import AmatakError
@@ -31,13 +32,30 @@ def handle_run(runtime: AMatakRuntime, filename: str, debug: bool = False) -> No
     """Execute an Amatak script file"""
     if not os.path.exists(filename):
         raise AmatakError(f"File not found: {filename}")
-    runtime.execute_file(filename, debug=debug)
+    
+    # Get absolute path for better error messages
+    abs_path = os.path.abspath(filename)
+    
+    try:
+        with open(abs_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+        
+        if debug:
+            print(f"Executing: {abs_path}")
+            
+        # Execute the code
+        runtime.execute(code, filename=abs_path)
+        
+    except Exception as e:
+        raise AmatakError(f"Error executing {filename}: {str(e)}")
 
 def handle_build(runtime: AMatakRuntime, filename: str) -> None:
     """Compile an Amatak script to bytecode"""
     if not os.path.exists(filename):
         raise AmatakError(f"File not found: {filename}")
-    output_file = runtime.compile(filename)
+    
+    abs_path = os.path.abspath(filename)
+    output_file = runtime.compile(abs_path)
     print(f"Compiled to: {output_file}")
 
 def handle_serve(directory: Optional[str] = None) -> None:
@@ -87,7 +105,8 @@ def main() -> None:
             raise AmatakError(f"Unknown command: '{command}'")
     except AmatakError as e:
         print(f"Error: {e}", file=sys.stderr)
-        print_help()
+        if command == 'run':
+            print_help()
         sys.exit(1)
     except Exception as e:
         print(f"Unexpected error: {e}", file=sys.stderr)

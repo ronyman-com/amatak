@@ -1,5 +1,11 @@
 from datetime import datetime
 
+
+# amatak/errors.py
+class AmatakError(Exception):
+    """Base exception for Amatak language errors"""
+    pass
+
 class AmatakError(Exception):
     """Base class for all Amatak errors"""
     def __init__(self, message: str, context: dict = None):
@@ -44,3 +50,6 @@ class DatabaseError(AmatakError):
 class TypeCheckError(AmatakError):
     """Type system validation errors"""
     pass
+
+
+

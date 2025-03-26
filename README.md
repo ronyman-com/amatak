@@ -52,9 +52,9 @@ amatak-language/
 │           └── runtime.ak
 │
 ├── bin/                                # Executables
-│   ├── amatak                          # Main CLI
-│   ├── amatakd                         # Daemon
-│   └── akc                             # Compiler
+│   ├── amatak.py                          # Main CLI
+│   ├── amatakd.py                         # Daemon
+│   └── akc.py                             # Compiler
 │
 ├── lib/                                # Shared code
 │   ├── py_compat/                      # Python compat
@@ -118,6 +118,14 @@ Provide enhanced performance in key areas
 Hello World in Amatak
 ## Getting started is beautifully familiar:
 
+https://github.com/ronyman-com/lang_amatak
+
+## to install from Github Rego
+
+```bash
+pip install -e .
+
+```
 
 # hello.amatak
 
