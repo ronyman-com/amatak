@@ -9,11 +9,6 @@ flake8>=3.9
 mypy>=0.900
 twine>=3.4
 
-[test]
-pytest>=6.0
-pytest-cov>=2.0
-requests>=2.25
-
 [web]
 aiohttp>=3.7
 jinja2>=3.0

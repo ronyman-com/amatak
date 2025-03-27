@@ -23,30 +23,34 @@ setup(
     long_description_content_type="text/markdown",
     author="Rony MAN",
     author_email="amatak.io@outlook.com",
-    url="https://github.com/ronyman-com/lang_amatak",  # Fixed typo in URL (removed extra 'h')
+    url="https://github.com/ronyman-com/lang_amatak",
     license="MIT",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Interpreters",
         "Topic :: Software Development :: Compilers",
     ],
     packages=find_packages(include=["amatak", "amatak.*"]),
+    package_dir={"amatak": "amatak"},
     package_data={
         "amatak": [
+            "bin/*.py",
+            "bin/*.bat",
             "stdlib/*.amatak",
             "stdlib/**/*.amatak",
             "templates/*",
             "web/static/*",
         ],
     },
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
         "pygments>=2.7",  # For syntax highlighting
         "watchdog>=2.0",  # For dev server file watching
@@ -64,11 +68,6 @@ setup(
             "aiohttp>=3.7",  # For web server components
             "jinja2>=3.0",   # For templating
         ],
-        "test": [  # Combined into a single extras_require
-            "pytest>=6.0",
-            "pytest-cov>=2.0",
-            "requests>=2.25",
-        ],
     },
     entry_points={
         "console_scripts": [
@@ -81,4 +80,6 @@ setup(
         "Bug Reports": "https://github.com/ronyman-com/lang_amatak/issues",
         "Source": "https://github.com/ronyman-com/lang_amatak",
     },
+    include_package_data=True,
+    zip_safe=False,
 )

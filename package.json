@@ -1,0 +1,87 @@
+{
+    "name": "amatak-language",
+    "version": "0.1.0",
+    "description": "A modern, embeddable scripting language with Python interoperability",
+    "main": "bin/amatak.js",
+    "bin": {
+      "amatak": "./bin/amatak",
+      "akc": "./bin/akc"
+    },
+    "scripts": {
+      "build": "python setup.py build",
+      "install": "python install.py",
+      "postinstall": "echo Installation complete! Add %USERPROFILE%\\.amatak\\bin to your PATH",
+      "test": "python -m pytest tests/",
+      "start": "node bridges/js/launcher.js",
+      "lint": "eslint .",
+      "format": "prettier --write .",
+      "repl": "python repl.py",
+      "serve": "python -m amatak.servers.http",
+      "zip":"python -m zipfile -c stdlib.zip stdlib/"
+    },
+    "keywords": [
+      "programming-language",
+      "scripting",
+      "embedded",
+      "interpreter",
+      "compiler"
+    ],
+    "author": "Rony MAN <amatak.io@outlook.com>",
+    "license": "MIT",
+    "dependencies": {
+      "zeromq": "^5.3.1",
+      "ws": "^8.14.2",
+      "msgpackr": "^1.9.0",
+      "python-bridge": "^1.1.0"
+    },
+    "devDependencies": {
+      "@types/node": "^20.11.0",
+      "esbuild": "^0.19.12",
+      "eslint": "^9.0.0",
+      "prettier": "^3.2.0",
+      "typescript": "^5.3.0",
+      "mocha": "^10.0.0",
+      "chai": "^4.3.6"
+    },
+    "engines": {
+      "node": ">=18.0.0",
+      "python": ">=3.13.0"
+    },
+    "files": [
+      "amatak/",
+      "bin/",
+      "examples/",
+      "lib/",
+      "stdlib/",
+      "tests/",
+      "bridges/js/",
+      "Include/",
+      "Modules/"
+    ],
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/amatak-io/lang_amatak.git"
+    },
+    "bugs": {
+      "url": "https://github.com/amatak-io/lang_amatak/issues"
+    },
+    "homepage": "https://amatak.io",
+    "contributors": [
+      {
+        "name": "Rony MAN",
+        "email": "amatak.io@outlook.com"
+      }
+    ],
+    "directories": {
+      "doc": "docs",
+      "example": "examples",
+      "test": "tests"
+    },
+    "resolutions": {
+      "glob": "^9.0.0",
+      "rimraf": "^4.0.0"
+    },
+    "optionalDependencies": {
+      "ffi-napi": "^4.0.3"
+    }
+  }

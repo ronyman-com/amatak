@@ -2,25 +2,33 @@ from .nodes import FuncNode, CallNode, PrintNode, StringNode, BinOpNode
 from .errors import AmatakRuntimeError
 
 class Interpreter:
-    def __init__(self, tree):
+    def __init__(self, tree, debug=False):
         """Initialize interpreter with AST and setup execution environment"""
         self.tree = tree
         self.functions = {}  # Stores function definitions
         self.variables = {}   # Stores variables
+        self.debug = debug
 
     def interpret(self):
         """Execute the AST and handle runtime errors"""
-        print("\n=== INTERPRETER START ===")
+        if self.debug:
+            print("\n=== INTERPRETER START ===")
         for node in self.tree:
-            print(f"Executing: {node}")
+            if self.debug:
+                print(f"Executing: {node}")
             try:
                 result = self.visit(node)
-                if result is not None:
+                if result is not None and self.debug:
                     print(f"  -> Returned: {result}")
             except AmatakRuntimeError as e:
-                print(f"! Runtime Error executing {node}: {e}")
+                if self.debug:
+                    print(f"! Runtime Error executing {node}: {e}")
+                raise
             except Exception as e:
-                print(f"! Unexpected Error executing {node}: {e}")
+                if self.debug:
+                    print(f"! Unexpected Error executing {node}: {e}")
+                raise
+
 
     def visit(self, node):
         """Dispatch to appropriate visit method based on node type"""

@@ -7,13 +7,17 @@ from amatak.nodes import (
 from amatak.errors import AmatakSyntaxError
 from amatak.tokens import TokenType
 
+
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens, debug=False):
         self.tokens = tokens
         self.pos = 0
         self.current_token = self.tokens[self.pos] if self.tokens else None
+        self.debug = debug
 
     def error(self, message):
+        if self.debug:
+            print(f"PARSER ERROR: {message}")
         if self.current_token:
             raise AmatakSyntaxError(
                 message=message,

@@ -1,0 +1,98 @@
+// JSON decoder implementation
+import re from stdlib.strings
+import math from stdlib.math
+from stdlib.errors import ValueError, TypeError
+
+class JSONDecodeError : ValueError {
+    func __init__(msg, doc, pos) {
+        super.__init__(msg)
+        this.doc = doc
+        this.pos = pos
+    }
+}
+
+let NUMBER_RE = r'-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?'
+let STRING_RE = r'"([^"\\]*(?:\\.[^"\\]*)*)"'
+
+func _decode_string(s) {
+    // Simplified string unescaping
+    return s.replace(r'\"', '"')
+            .replace(r'\\', '\\')
+            .replace(r'\/', '/')
+            .replace(r'\b', '\b')
+            .replace(r'\f', '\f')
+            .replace(r'\n', '\n')
+            .replace(r'\r', '\r')
+            .replace(r'\t', '\t')
+}
+
+func _decode_number(s, parse_float, parse_int) {
+    if '.' in s or 'e' in s or 'E' in s {
+        if parse_float {
+            return parse_float(s)
+        }
+        return math.float(s)
+    } else {
+        if parse_int {
+            return parse_int(s)
+        }
+        return math.int(s)
+    }
+}
+
+func decode(s, parse_float=None, parse_int=None) {
+    let idx = 0
+    let length = s.length()
+    
+    func _whitespace() {
+        while idx < length and s[idx].isspace() {
+            idx += 1
+        }
+    }
+    
+    func _next_char() {
+        if idx >= length {
+            throw JSONDecodeError("Unexpected end of input", s, idx)
+        }
+        return s[idx]
+    }
+    
+    func _parse_value() {
+        _whitespace()
+        let char = _next_char()
+        
+        if char == '"' {
+            return _parse_string()
+        } elif char == '{' {
+            return _parse_object()
+        } elif char == '[' {
+            return _parse_array()
+        } elif char == 't' and s.slice(idx, idx+4) == "true" {
+            idx += 4
+            return true
+        } elif char == 'f' and s.slice(idx, idx+5) == "false" {
+            idx += 5
+            return false
+        } elif char == 'n' and s.slice(idx, idx+4) == "null" {
+            idx += 4
+            return null
+        } else {
+            return _parse_number()
+        }
+    }
+    
+    // ... (other parsing functions)
+    
+    let result = _parse_value()
+    _whitespace()
+    if idx != length {
+        throw JSONDecodeError("Extra data", s, idx)
+    }
+    return result
+}
+
+func load(fp, *, parse_float=None, parse_int=None) {
+    return decode(fp.read(), parse_float, parse_int)
+}
+
+export decode, load, JSONDecodeError

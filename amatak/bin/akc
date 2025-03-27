@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Amatak Compiler (akc) - Compiles Amatak source to bytecode
+
+VERSION="0.1.0"
+AMATAK_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+COMPILER_SCRIPT="$AMATAK_ROOT/amatak/compiler.py"
+
+show_help() {
+    echo "Amatak Compiler (akc) v$VERSION"
+    echo "Usage: akc [options] <input.amatak> [output.amc]"
+    echo ""
+    echo "Options:"
+    echo "  -o <file>    Specify output file"
+    echo "  -O <level>   Optimization level (0-2)"
+    echo "  -v           Verbose output"
+    echo "  --version    Show version"
+    echo "  --help       Show this help"
+}
+
+# Parse arguments
+OUTPUT=""
+OPT_LEVEL=0
+VERBOSE=0
+INPUT=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -o|--output)
+            OUTPUT="$2"
+            shift 2
+            ;;
+        -O)
+            OPT_LEVEL="$2"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        --version)
+            echo "akc v$VERSION"
+            exit 0
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            if [[ -z "$INPUT" ]]; then
+                INPUT="$1"
+            else
+                if [[ -z "$OUTPUT" ]]; then
+                    OUTPUT="$1"
+                else
+                    echo "Error: Too many arguments" >&2
+                    exit 1
+                fi
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate input
+if [[ -z "$INPUT" ]]; then
+    echo "Error: No input file specified" >&2
+    show_help
+    exit 1
+fi
+
+# Set default output filename if not specified
+if [[ -z "$OUTPUT" ]]; then
+    OUTPUT="${INPUT%.*}.amc"
+fi
+
+# Run the compiler
+python3 "$COMPILER_SCRIPT" "$INPUT" "$OUTPUT" $OPT_LEVEL $VERBOSE
+exit $?

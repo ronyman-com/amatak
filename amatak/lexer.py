@@ -3,7 +3,7 @@ from .tokens import Token, TokenType
 
 
 class Lexer:
-    def __init__(self, text: str):
+    def __init__(self, text: str, debug: bool = False):  # Added debug parameter here
         """Initialize the lexer with source text."""
         self.text = text
         self.pos = 0
@@ -12,9 +12,12 @@ class Lexer:
         self.current_char = self.text[self.pos] if self.text else None
         self.symbols = TokenType.get_symbols()
         self.keywords = TokenType.get_keywords()
+        self.debug = debug  # Now properly using the parameter
 
     def error(self, message: str):
         """Raise a syntax error with current position."""
+        if self.debug:
+            print(f"Lexer Error [L{self.line}:C{self.column}]: {message}")
         raise AmatakSyntaxError(message, self.line, self.column)
 
     def advance(self):

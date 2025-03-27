@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Amatak Daemon (amatakd) - Background execution service
+
+VERSION="0.1.0"
+AMATAK_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+DAEMON_SCRIPT="$AMATAK_ROOT/amatak/servers/daemon.py"
+
+# Set Python path
+export PYTHONPATH="$AMATAK_ROOT:$AMATAK_ROOT/Lib:$PYTHONPATH"
+
+show_help() {
+    echo "Amatak Daemon (amatakd) v$VERSION"
+    echo "Usage: amatakd [command] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  start        Start the daemon"
+    echo "  stop         Stop the daemon"
+    echo "  restart      Restart the daemon"
+    echo "  status       Show daemon status"
+    echo ""
+    echo "Options:"
+    echo "  --config <file>  Use alternate config file (default: $AMATAK_ROOT/etc/amatakd.conf)"
+    echo "  --log <file>     Specify log file (default: /var/log/amatakd.log)"
+    echo "  --pid <file>     Specify PID file (default: /var/run/amatakd.pid)"
+    echo "  --version        Show version"
+    echo "  --help           Show this help"
+}
+
+# Default values
+CONFIG="$AMATAK_ROOT/etc/amatakd.conf"
+LOG_FILE="/var/log/amatakd.log"
+PID_FILE="/var/run/amatakd.pid"
+COMMAND=""
+
+# Create default config if it doesn't exist
+if [ ! -f "$CONFIG" ]; then
+    mkdir -p "$(dirname "$CONFIG")"
+    cat > "$CONFIG" <<EOL
+[server]
+host = 127.0.0.1
+port = 8080
+workers = 4
+debug = false
+EOL
+fi
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        start|stop|restart|status)
+            COMMAND="$1"
+            shift
+            ;;
+        --config)
+            CONFIG="$2"
+            shift 2
+            ;;
+        --log)
+            LOG_FILE="$2"
+            shift 2
+            ;;
+        --pid)
+            PID_FILE="$2"
+            shift 2
+            ;;
+        --version)
+            echo "amatakd v$VERSION"
+            exit 0
+            ;;
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown argument $1" >&2
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# Validate command
+if [[ -z "$COMMAND" ]]; then
+    echo "Error: No command specified" >&2
+    show_help
+    exit 1
+fi
+
+# Execute the command
+case $COMMAND in
+    start)
+        echo "Starting amatakd..."
+        python3 "$DAEMON_SCRIPT" --config "$CONFIG" --log "$LOG_FILE" --pid "$PID_FILE" start
+        ;;
+    stop)
+        echo "Stopping amatakd..."
+        python3 "$DAEMON_SCRIPT" --pid "$PID_FILE" stop
+        ;;
+    restart)
+        echo "Restarting amatakd..."
+        python3 "$DAEMON_SCRIPT" --config "$CONFIG" --log "$LOG_FILE" --pid "$PID_FILE" restart
+        ;;
+    status)
+        python3 "$DAEMON_SCRIPT" --pid "$PID_FILE" status
+        ;;
+    *)
+        echo "Error: Unknown command $COMMAND" >&2
+        exit 1
+        ;;
+esac
+
+exit $?

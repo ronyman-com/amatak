@@ -1,0 +1,79 @@
+// Simplified dataclass implementation
+import inspect from stdlib.objects
+
+func field(*, default=null, default_factory=null) {
+    return {
+        'default': default,
+        'default_factory': default_factory
+    }
+}
+
+func _create_init(fields) {
+    func __init__(self, *args, **kwargs) {
+        for i, (name, field_info) in enumerate(fields) {
+            if i < args.length() {
+                self[name] = args[i]
+            } elif name in kwargs {
+                self[name] = kwargs[name]
+            } elif 'default' in field_info and field_info.default != null {
+                self[name] = field_info.default
+            } elif 'default_factory' in field_info and field_info.default_factory != null {
+                self[name] = field_info.default_factory()
+            } else {
+                throw TypeError(f"Missing required argument '{name}'")
+            }
+        }
+    }
+    return __init__
+}
+
+func dataclass(cls) {
+    let fields = []
+    
+    for name, value in inspect.get_members(cls) {
+        if name.startswith('_') {
+            continue
+        }
+        
+        let field_info = {
+            'name': name,
+            'type': type(value)
+        }
+        
+        if isinstance(value, dict) and ('default' in value or 'default_factory' in value) {
+            field_info.update(value)
+        } else {
+            field_info['default'] = value
+        }
+        
+        fields.push((name, field_info))
+    }
+    
+    cls.__init__ = _create_init(fields)
+    
+    func __repr__(self) {
+        let parts = []
+        for name, _ in fields {
+            parts.push(f"{name}={self[name]}")
+        }
+        return f"{cls.__name__}({parts.join(', ')})"
+    }
+    cls.__repr__ = __repr__
+    
+    return cls
+}
+
+def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+    
+    def __repr__(self):
+        attrs = ', '.join(f"{k}={v!r}" for k, v in self.__dict__.items())
+        return f"{self.__class__.__name__}({attrs})"
+    
+    def to_dict(self):
+        return self.__dict__
+
+export dataclass, field
+
+

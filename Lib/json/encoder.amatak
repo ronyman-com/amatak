@@ -1,0 +1,50 @@
+// JSON encoder implementation
+import re from stdlib.strings
+from stdlib.errors import TypeError
+
+func _encode_str(s) {
+    // Simplified string escaping
+    return '"' + s.replace('\\', '\\\\')
+                 .replace('"', '\\"')
+                 .replace('\b', '\\b')
+                 .replace('\f', '\\f')
+                 .replace('\n', '\\n')
+                 .replace('\r', '\\r')
+                 .replace('\t', '\\t') + '"'
+}
+
+func _encode_list(lst, skipkeys, ensure_ascii, indent, current_indent) {
+    if not lst {
+        return "[]"
+    }
+    
+    let items = []
+    for item in lst {
+        items.push(encode(item, skipkeys, ensure_ascii, indent, current_indent))
+    }
+    return "[" + items.join(", ") + "]"
+}
+
+func encode(obj, skipkeys=False, ensure_ascii=True, indent=None, _current_indent="") {
+    if obj == null {
+        return "null"
+    } elif obj is bool {
+        return obj ? "true" : "false"
+    } elif obj is int or obj is float {
+        return str(obj)
+    } elif obj is str {
+        return _encode_str(obj)
+    } elif obj is list or obj is tuple {
+        return _encode_list(obj, skipkeys, ensure_ascii, indent, _current_indent)
+    } elif obj is dict {
+        return _encode_dict(obj, skipkeys, ensure_ascii, indent, _current_indent)
+    } else {
+        throw TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    }
+}
+
+func dump(obj, fp, *, skipkeys=False, ensure_ascii=True, indent=None) {
+    fp.write(encode(obj, skipkeys, ensure_ascii, indent))
+}
+
+export encode, dump
