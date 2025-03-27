@@ -1,0 +1,75 @@
+// Amatak Web Example
+import web
+import web.components
+
+// Define a component
+component Greeting {
+    props {
+        name: String = "World"
+    }
+    
+    render() {
+        <div class="greeting">
+            <h1>Hello, {this.props.name}!</h1>
+            <p>Welcome to Amatak web development</p>
+        </div>
+    }
+}
+
+// Main app component
+component App {
+    state {
+        counter: Int = 0
+        username: String = ""
+    }
+    
+    func increment() {
+        this.set_state(counter: this.state.counter + 1)
+    }
+    
+    func handle_input(event) {
+        this.set_state(username: event.target.value)
+    }
+    
+    render() {
+        <main>
+            <Greeting name={this.state.username || "Guest"} />
+            
+            <div class="counter">
+                <p>Count: {this.state.counter}</p>
+                <button @click={this.increment}>Increment</button>
+            </div>
+            
+            <input 
+                type="text" 
+                placeholder="Enter your name"
+                @input={this.handle_input}
+            />
+            
+            <if this.state.username>
+                <p>You typed: {this.state.username}</p>
+            </if>
+        </main>
+    }
+}
+
+// Create and mount the app
+app = new WebApp("#app", App)
+
+// Alternative server-side version
+/*
+func handle_request(request) {
+    return response.html(
+        <html>
+            <head><title>Amatak Web</title></head>
+            <body>
+                <Greeting name="Web User" />
+            </body>
+        </html>
+    )
+}
+
+server = new WebServer(port=8080)
+server.route("/", handle_request)
+server.start()
+*/

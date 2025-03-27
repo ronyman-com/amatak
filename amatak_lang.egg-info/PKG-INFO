@@ -166,7 +166,9 @@ amatak-language/
 │   ├── amatak.ps1                  # PowerShell launcher
 │   ├── amatakd*                    # Unix daemon
 │   ├── amatakd.bat                 # Windows service
-│   └── akc*                        # Ahead-of-time compiler
+│   ├── akc*                        # Ahead-of-time compiler
+│   ├── amatak.py                   # CLI entry point
+│   └── amatak_cli.py               # Actual CLI implementation
 │
 ├── lib/                            # Support libraries
 │   ├── py_compat/                  # Python compatibility

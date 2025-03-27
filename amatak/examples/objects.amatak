@@ -1,0 +1,136 @@
+// examples/objects.amatak
+// Demonstrates object-oriented programming in Amatak
+
+import strings from stdlib.strings
+import objects from stdlib.objects
+
+// Base class for all animals
+class Animal {
+    func __init__(name, age) {
+        this.name = name
+        this.age = age
+    }
+
+    func speak() {
+        print("Animal sound!")
+    }
+
+    func describe() {
+        print(f"I am {this.name}, age {this.age}")
+    }
+}
+
+// Dog class inherits from Animal
+class Dog : Animal {
+    func __init__(name, age, breed) {
+        super.__init__(name, age)
+        this.breed = breed
+    }
+
+    // Method override
+    func speak() {
+        print("Woof!")
+    }
+
+    func fetch(item) {
+        print(f"{this.name} fetches the {item}")
+    }
+}
+
+// Cat class with special properties
+class Cat : Animal {
+    var lives = 9
+
+    func __init__(name, age, color) {
+        super.__init__(name, age)
+        this.color = color
+    }
+
+    func speak() {
+        print("Meow!")
+    }
+
+    func lose_life() {
+        this.lives -= 1
+        if this.lives <= 0 {
+            print(f"{this.name} has no lives left!")
+        } else {
+            print(f"{this.name} has {this.lives} lives left")
+        }
+    }
+}
+
+// Using dataclass for simple objects
+from stdlib.dataclasses import dataclass, field
+
+@dataclass
+class Point {
+    x: float
+    y: float
+    z: float = field(default=0.0)
+}
+
+@dataclass
+class Rectangle {
+    width: float
+    height: float
+    position: Point = field(default=Point(0, 0))
+}
+
+// Demonstrate object composition
+class Zoo {
+    func __init__() {
+        this.animals = []
+    }
+
+    func add_animal(animal) {
+        this.animals.push(animal)
+        print(f"Added {animal.name} to the zoo")
+    }
+
+    func morning_roll_call() {
+        print("Zoo morning roll call:")
+        for animal in this.animals {
+            animal.speak()
+        }
+    }
+}
+
+// Main function to demonstrate usage
+func main() {
+    // Create instances
+    dog = Dog("Rex", 3, "Golden Retriever")
+    cat = Cat("Whiskers", 5, "Tabby")
+    point = Point(1.5, 2.5)
+    rect = Rectangle(10.0, 20.0, point)
+
+    // Test inheritance
+    dog.describe()  // Inherited from Animal
+    dog.speak()     // Overridden in Dog
+    dog.fetch("ball")
+
+    // Test properties and methods
+    cat.describe()
+    cat.speak()
+    cat.lose_life()
+    cat.lose_life()
+
+    // Test dataclasses
+    print(f"Point coordinates: ({point.x}, {point.y}, {point.z})")
+    print(f"Rectangle area: {rect.width * rect.height}")
+
+    // Test composition
+    zoo = Zoo()
+    zoo.add_animal(dog)
+    zoo.add_animal(cat)
+    zoo.morning_roll_call()
+
+    // Demonstrate object utilities
+    print("\nObject inspection:")
+    print("Dog methods:", objects.get_methods(dog))
+    print("Cat properties:", objects.get_attributes(cat))
+    print("Is dog an Animal?", isinstance(dog, Animal))
+}
+
+// Run the example
+main()

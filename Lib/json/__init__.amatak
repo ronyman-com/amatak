@@ -1,0 +1,17 @@
+// JSON module for Amatak
+import decoder from ./decoder
+import encoder from ./encoder
+
+func dumps(obj, *, skipkeys=False, ensure_ascii=True, indent=None) {
+    return encoder.encode(obj, skipkeys, ensure_ascii, indent)
+}
+
+func loads(s, *, parse_float=None, parse_int=None) {
+    return decoder.decode(s, parse_float, parse_int)
+}
+
+// Aliases
+let dump = encoder.dump
+let load = decoder.load
+
+export dumps, loads, dump, load, encoder, decoder

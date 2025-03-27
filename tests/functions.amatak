@@ -1,0 +1,137 @@
+import unittest
+from amatak.interpreter import Interpreter
+from amatak.parser import Parser
+from amatak.lexer import Lexer
+
+class TestFunctionsAmatak(unittest.TestCase)
+    def setUp(self)
+        Initialize interpreter for each test
+        self.interpreter = Interpreter([])
+    
+    def run_code(self, code)
+        Helper to run code snippets
+        lexer = Lexer(code)
+        parser = Parser(lexer.get_tokens())
+        self.interpreter.tree = parser.parse()
+        return self.interpreter.interpret()
+
+    def test_math_functions(self)
+        code = 
+        function abs(x) {
+            if x  0 { return -x }
+            return x
+        }
+        function pow(base, exp) {
+            let result = 1
+            for let i = 0; i  exp; i = i + 1 {
+                result = result  base
+            }
+            return result
+        }
+        print abs(-3.5)
+        print pow(3, 4)
+        
+        self.run_code(code)
+        self.assertEqual(self.interpreter.context.get('abs')(-5), 5)
+        self.assertEqual(self.interpreter.context.get('pow')(2, 8), 256)
+
+    def test_string_functions(self)
+        code = 
+        function lower(s) {
+            let result = 
+            for let i = 0; i  len(s); i = i + 1 {
+                result = result + toLower(s[i])
+            }
+            return result
+        }
+        print lower(HELLO)
+        
+        self.run_code(code)
+        self.assertEqual(self.interpreter.context.get('lower')('TEST'), 'test')
+
+    def test_array_functions(self)
+        code = 
+        function range(start, end, step=1) {
+            let result = []
+            let current = start
+            while current  end {
+                result.push(current)
+                current = current + step
+            }
+            return result
+        }
+        let numbers = range(1, 6)
+        print numbers
+        
+        self.run_code(code)
+        self.assertEqual(self.interpreter.context.get('numbers'), [1, 2, 3, 4, 5])
+
+    def test_higher_order_functions(self)
+        code = 
+        function reduce(arr, func, initial) {
+            let accumulator = initial
+            for let item in arr {
+                accumulator = func(accumulator, item)
+            }
+            return accumulator
+        }
+        let sum = reduce([1,2,3], (a,b) = a + b, 0)
+        print sum
+        
+        self.run_code(code)
+        self.assertEqual(self.interpreter.context.get('sum'), 6)
+
+    def test_closures(self)
+        code = 
+        function makeAdder(x) {
+            return (y) = x + y
+        }
+        let add5 = makeAdder(5)
+        print add5(3)
+        
+        self.run_code(code)
+        add5 = self.interpreter.context.get('add5')
+        self.assertEqual(add5(10), 15)
+
+    def test_recursion(self)
+        code = 
+        function factorial(n) {
+            if n = 1 { return 1 }
+            return n  factorial(n - 1)
+        }
+        print factorial(5)
+        
+        self.run_code(code)
+        self.assertEqual(self.interpreter.context.get('factorial')(5), 120)
+
+    def test_error_handling(self)
+        code = 
+        function divideSafe(a, b) {
+            if b == 0 {
+                throw Division by zero
+            }
+            return a  b
+        }
+        try {
+            print divideSafe(10, 0)
+        } catch e {
+            print Caught  + e
+        }
+        
+        with self.assertLogs(level='INFO') as cm
+            self.run_code(code)
+            self.assertIn('Caught Division by zero', cm.output[0])
+
+    def test_async_operations(self)
+        code = 
+        async function fetchData() {
+            return data
+        }
+        let result = await fetchData()
+        print result
+        
+        self.run_code(code)
+        self.assertEqual(self.interpreter.context.get('result'), 'data')
+
+if __name__ == '__main__'
+    unittest.main()

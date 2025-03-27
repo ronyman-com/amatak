@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# amatak/bin/amatak - Unix executable wrapper for Amatak language interpreter
+
+# Resolve absolute path to the interpreter
+AMATAK_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+PYTHON_EXEC=python3
+MAIN_SCRIPT="$AMATAK_ROOT/amatak/bin/amatak.py"
+
+# Check if python3 is available
+if ! command -v $PYTHON_EXEC >/dev/null 2>&1; then
+    echo "Error: python3 is required but not installed" >&2
+    exit 1
+fi
+
+# Resolve absolute paths
+AMATAK_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+PYTHON_EXEC=python3
+
+# Set Python path to ensure local package is used
+export PYTHONPATH="$AMATAK_ROOT:$AMATAK_ROOT/Lib:$PYTHONPATH"
+
+# Execute the module directly (not the file)
+exec $PYTHON_EXEC -m amatak.bin.amatak "$@"
+
+# Verify main script exists
+if [ ! -f "$MAIN_SCRIPT" ]; then
+    echo "Error: Could not locate amatak.py at $MAIN_SCRIPT" >&2
+    exit 1
+fi
+
+# Set Python path to include both amatak and Lib directories
+export PYTHONPATH="$AMATAK_ROOT:$AMATAK_ROOT/Lib:$PYTHONPATH"
+
+# Execute the main interpreter with all arguments
+exec $PYTHON_EXEC "$MAIN_SCRIPT" "$@"
