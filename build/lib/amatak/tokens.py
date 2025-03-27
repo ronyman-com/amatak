@@ -14,6 +14,8 @@ class TokenType(Enum):
     DOT = "."
     SEMI = ";"
     COLON = ":"
+    QUESTION = "?"
+    MOD = "%" 
 
     # Operators
     PLUS = "+"
@@ -103,7 +105,9 @@ class TokenType(Enum):
             "<": cls.LT,
             ">": cls.GT,
             "<=": cls.LTE,
-            ">=": cls.GTE
+            ">=": cls.GTE,
+            "%": cls.MOD,
+            "?":cls.QUESTION, 
         }
 
 

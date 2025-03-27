@@ -1,0 +1,5 @@
+// test_print.amatak
+print "This is a test"  // String
+print 123               // Number
+print 45.67             // Float
+print "Combined " + 123 // Mixed types

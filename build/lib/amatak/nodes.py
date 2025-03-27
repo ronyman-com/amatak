@@ -328,3 +328,12 @@ class NodeVisitor:
     def generic_visit(self, node):
         """Called if no explicit visitor method exists for a node"""
         raise NotImplementedError(f'No visit_{type(node).__name__} method')
+    
+
+# In nodes.py
+class TernaryNode(ASTNode):
+    """Ternary operator node (condition ? true_expr : false_expr)"""
+    def __init__(self, condition, true_expr, false_expr):
+        self.condition = condition
+        self.true_expr = true_expr
+        self.false_expr = false_expr

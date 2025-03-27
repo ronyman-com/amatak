@@ -178,7 +178,8 @@ class Parser:
     
 
     def parse_expression(self):
-        """Parse expressions with binary operators."""
+        """Parse expressions with binary operators and ternary expressions."""
+        # Start with the lowest precedence (logical OR would go here if implemented)
         node = self.parse_primary()
         
         # Handle array access
@@ -190,13 +191,21 @@ class Parser:
         
         # Handle binary operations
         while self.current_token and self.current_token.type in (
-            TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV,
+            TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV, TokenType.MOD,
             TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE,
             TokenType.EQ, TokenType.NEQ
         ):
             op = self.current_token.type
             self.advance()
             node = BinOpNode(node, op, self.parse_primary())
+        
+        # Handle ternary operator (has higher precedence than assignment but lower than comparisons)
+        if self.current_token and self.current_token.type == TokenType.QUESTION:
+            self.advance()
+            true_expr = self.parse_expression()
+            self.expect(TokenType.COLON, "Expected ':' in ternary operator")
+            false_expr = self.parse_expression()
+            node = TernaryNode(node, true_expr, false_expr)
         
         return node
 
@@ -269,3 +278,12 @@ class Parser:
         self.expect(TokenType.RBRACE, "Expected '}'")
         return ForNode(var_name, start, condition, step, body)
     
+
+    # In parser.py
+    def parse_ternary(self, condition):
+        """Parse ternary operator: condition ? true_expr : false_expr"""
+        self.expect(TokenType.QUESTION, "Expected '?' in ternary operator")
+        true_expr = self.parse_expression()
+        self.expect(TokenType.COLON, "Expected ':' in ternary operator")
+        false_expr = self.parse_expression()
+        return TernaryNode(condition, true_expr, false_expr)

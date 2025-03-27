@@ -86,6 +86,8 @@ class Lexer:
             self.error("Unterminated string literal")
             
         self.advance()  # Skip closing quote
+        if self.debug:
+          print(f"[LEXER] Found string: {result}")
         return Token(TokenType.STRING, result, start_line, start_col)
 
     def get_number(self) -> Token:
@@ -96,19 +98,26 @@ class Lexer:
         decimal_points = 0
         
         while (self.current_char is not None and 
-              (self.current_char.isdigit() or self.current_char == '.')):
+            (self.current_char.isdigit() or self.current_char == '.')):
             if self.current_char == '.':
                 decimal_points += 1
                 if decimal_points > 1:
                     self.error("Invalid number with multiple decimal points")
             result += self.current_char
             self.advance()
-            
+        
+        # Ensure valid number format
         if result.startswith('.'):
             result = '0' + result
         if result.endswith('.'):
             result += '0'
-            
+        
+        # Validate numeric value
+        try:
+            float(result)
+        except ValueError:
+            self.error(f"Invalid number format: {result}")
+        
         return Token(TokenType.NUMBER, result, start_line, start_col)
 
     def get_identifier_or_keyword(self) -> Token:

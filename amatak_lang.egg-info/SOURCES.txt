@@ -51,6 +51,7 @@ amatak_lang.egg-info/requires.txt
 amatak_lang.egg-info/top_level.txt
 tests/test_arrays.py
 tests/test_cli.py
+tests/test_functions.py
 tests/test_interpreter.py
 tests/test_lexer.py
 tests/test_objects.py
