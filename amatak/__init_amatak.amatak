@@ -1,0 +1,40 @@
+
+
+# amatak/__init__.amatak
+"""
+Amatak package initialization
+Compatible with both Python and Amatak runtimes
+"""
+
+# Context detection that works in both runtimes
+is_python = False
+try:
+    import sys
+    is_python = hasattr(sys, '_amatak_python_context')
+except:
+    pass
+
+if is_python:
+    # Python will execute this branch
+    from .loader import load_module, clear_cache
+else:
+    # Amatak will execute this branch
+    def load_module(path: str) -> any:
+        """Dummy loader for pure Amatak context"""
+        import path as module
+        return module
+        
+    def clear_cache():
+        """No-op in pure Amatak"""
+        pass
+
+# Common exports
+export load_module, clear_cache
+
+
+
+# Package metadata
+package_info = {
+    'version': '0.1.0',
+    'author': 'Amatak Team'
+}

@@ -114,3 +114,103 @@ john.save()
 
 # Delete objects
 post.delete()
+
+
+
+
+
+
+bash
+Copy
+amatak db --type sqlite --path test.db --query "SELECT * FROM users"
+amatak db --type postgres --host localhost --dbname mydb --user postgres --query "SELECT * FROM products"
+Through the REPL:
+
+bash
+Copy
+amatak repl
+>>> conn = db_connect('sqlite', db_path='test.db')
+>>> results = db_execute(conn, "SELECT * FROM users")
+>>> for row in results: print(row)
+>>> db_disconnect(conn)
+Using the ORM in your Amatak scripts:
+
+amatak
+Copy
+// example.amatak
+import SQLiteDriver from amatak.database.drivers.sqlite
+import User from amatak.database.orm
+
+// Connect to database
+driver = SQLiteDriver()
+driver.connect("test.db")
+
+// Setup model
+User.connect(driver)
+User.create_table()
+
+// Create a user
+user = User(username="test", email="test@example.com")
+user.save()
+
+// Query users
+for user in User.all():
+    print(user.username, user.email)
+Key features of this implementation:
+
+Database Connection Management:
+
+Supports both SQLite and PostgreSQL
+
+Tracks multiple connections
+
+Clean connection disposal
+
+ORM Integration:
+
+Works with your existing ORM implementation
+
+Supports model operations through the REPL
+
+Flexible Query Execution:
+
+Direct SQL execution
+
+Parameterized queries
+
+Results in easy-to-use format
+
+Command Line Interface:
+
+Dedicated db subcommand
+
+Supports both interactive and one-shot operations
+
+REPL Enhancements:
+
+Database functions available in REPL
+
+Interactive query execution
+
+The implementation maintains all your existing functionality while adding comprehensive database support that matches Python's flexibility.
+
+
+
+
+
+# Show version
+amatak --version
+
+# Start SQLite terminal
+amatak db --type sqlite --path mydb.db
+
+# Start PostgreSQL terminal
+amatak db --type postgres --host localhost --dbname mydb --user postgres
+
+# Regular REPL
+amatak repl
+
+# Run script
+amatak run myscript.amatak
+
+

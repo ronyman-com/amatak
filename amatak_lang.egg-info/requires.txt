@@ -1,5 +1,12 @@
 pygments>=2.7
 watchdog>=2.0
+tabulate>=0.8.9
+
+[db]
+psycopg2-binary
+
+[db:platform_system == "Windows"]
+pyreadline
 
 [dev]
 pytest>=6.0

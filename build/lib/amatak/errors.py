@@ -1,55 +1,80 @@
 from datetime import datetime
 
-
-# amatak/errors.py
 class AmatakError(Exception):
-    """Base exception for Amatak language errors"""
-    pass
-
-class AmatakError(Exception):
-    """Base class for all Amatak errors"""
+    """Base class for all Amatak errors with context and timestamp support."""
+    
     def __init__(self, message: str, context: dict = None):
+        """
+        Initialize the error with a message and optional context.
+        
+        Args:
+            message: Error description
+            context: Additional context dictionary (default: None)
+        """
         super().__init__(message)
+        self.message = message
         self.context = context or {}
         self.timestamp = datetime.utcnow().isoformat()
+        
+    def __str__(self):
+        """String representation including timestamp and context."""
+        context_str = f", context: {self.context}" if self.context else ""
+        return f"[{self.timestamp}] {self.message}{context_str}"
 
 class AmatakSyntaxError(AmatakError):
-    """Syntax errors during parsing/lexing"""
+    """Syntax errors during parsing/lexing."""
+    
     def __init__(self, message: str, line: int = None, column: int = None):
-        super().__init__(message)
+        """
+        Initialize syntax error with location information.
+        
+        Args:
+            message: Error description
+            line: Line number where error occurred (default: None)
+            column: Column number where error occurred (default: None)
+        """
+        context = {
+            'line': line,
+            'column': column,
+            'error_type': 'syntax'
+        }
+        super().__init__(message, context)
         self.line = line
         self.column = column
-        self.context = {
-            'line': line,
-            'column': column
-        }
 
 class AmatakRuntimeError(AmatakError):
-    """Errors during code execution"""
+    """Errors during code execution."""
+    
     def __init__(self, message: str, line: int = None, column: int = None):
-        super().__init__(message)
+        """
+        Initialize runtime error with location information.
+        
+        Args:
+            message: Error description
+            line: Line number where error occurred (default: None)
+            column: Column number where error occurred (default: None)
+        """
+        context = {
+            'line': line,
+            'column': column,
+            'error_type': 'runtime'
+        }
+        super().__init__(message, context)
         self.line = line
         self.column = column
-        self.context = {
-            'line': line,
-            'column': column
-        }
 
 class CompilationError(AmatakError):
-    """Errors during code compilation"""
+    """Errors during code compilation to bytecode or other targets."""
     pass
 
 class SecurityError(AmatakError):
-    """Security-related errors"""
+    """Security-related errors like sandbox violations or unsafe operations."""
     pass
 
 class DatabaseError(AmatakError):
-    """Database operation errors"""
+    """Database operation errors including connection and query failures."""
     pass
 
 class TypeCheckError(AmatakError):
-    """Type system validation errors"""
+    """Type system validation errors during static analysis."""
     pass
-
-
-

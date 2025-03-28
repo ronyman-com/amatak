@@ -6,7 +6,8 @@ amatak-language/
 ├── # Core Implementation #
 │
 ├── amatak/                         # Core language implementation
-│   ├── __init__.py                 # Package metadata (__version__, __all__)
+│   ├── __init__.py                 # Python package initialization
+│   ├── __init__.amatak             # Amatak package initialization (parallel)
 │   ├── lexer.py                    # Tokenization engine (regex patterns, error recovery)
 │   ├── parser.py                   # Recursive descent parser (grammar rules, AST builder)
 │   ├── interpreter.py              # Tree-walking interpreter (eval loops, scope chains)
@@ -15,6 +16,7 @@ amatak-language/
 │   ├── utils.py                    # Utilities (visitor pattern, debug formatters)
 │   ├── env.py                      # Environment chains (lexical scoping)
 │   ├── compiler.py                 # Bytecode compiler (instruction selection)
+│   ├── loader.py                   # Unified module loader
 │   │
 │   ├── api/                        # Public API interfaces
 │   │   ├── __init__.py             # API exports (VersionedFeatureSet)
@@ -34,6 +36,19 @@ amatak-language/
 │   │   ├── pyport.py               # Python version compatibility
 │   │   ├── pylifecycle.py          # Startup/shutdown hooks
 │   │   └── pystate.py              # Thread-local state
+│   │
+│   ├── database/                   # Database components
+│   │   ├── __init__.py             # Python database package init
+│   │   ├── __init__.amatak         # Amatak database package init
+│   │   ├── orm.amatak              # ORM implementation
+│   │   └── drivers/
+│   │       ├── __init__.py         # Python drivers package init
+│   │       ├── __init__.amatak     # Amatak drivers package init
+│   │       ├── base_driver.amatak   # Base driver interface
+│   │       ├── sqlite.py           # Python SQLite implementation
+│   │       ├── sqlite.amatak       # Amatak SQLite implementation
+│   │       ├── postgres.py         # Python PostgreSQL implementation
+│   │       └── postgres.amatak     # Amatak PostgreSQL implementation
 │   │
 ├── # Standard Library #
 │

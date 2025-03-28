@@ -1,0 +1,299 @@
+# Amatak ORM Implementation
+
+class Field {
+    init(name: none = none, primary_key: bool = false, nullable: bool = false, 
+         default: any = none, unique: bool = false, index: bool = false) {
+        self.name = name
+        self.primary_key = primary_key
+        self.nullable = nullable
+        self.default = default
+        self.unique = unique
+        self.index = index
+        
+        if callable(self.default) {
+            self.default = self.default()
+        }
+    }
+}
+
+class IntegerField : Field {
+    init(min_value: int? = none, max_value: int? = none, **kwargs) {
+        super.init(**kwargs)
+        self.min_value = min_value
+        self.max_value = max_value
+    }
+}
+
+class StringField : Field {
+    init(max_length: int? = none, **kwargs) {
+        super.init(**kwargs)
+        self.max_length = max_length
+    }
+}
+
+class BooleanField : Field {
+    init(**kwargs) {
+        super.init(**kwargs)
+    }
+}
+
+class FloatField : Field {
+    init(precision: int = 2, **kwargs) {
+        super.init(**kwargs)
+        self.precision = precision
+    }
+}
+
+class DateTimeField : Field {
+    init(auto_now: bool = false, auto_now_add: bool = false, **kwargs) {
+        super.init(**kwargs)
+        self.auto_now = auto_now
+        self.auto_now_add = auto_now_add
+    }
+}
+
+class ForeignKey : Field {
+    init(related_model: type, related_field: str = "id", 
+         on_delete: str = "CASCADE", **kwargs) {
+        super.init(**kwargs)
+        self.related_model = related_model
+        self.related_field = related_field
+        self.on_delete = on_delete
+    }
+}
+
+class ModelMeta {
+    static func __new__(cls, name: str, bases: list, namespace: dict) {
+        # Collect fields from class attributes
+        fields = {}
+        for key, value in namespace.items() {
+            if isinstance(value, Field) {
+                value.name = key
+                fields[key] = value
+            }
+        }
+        
+        # Store metadata
+        namespace["_meta"] = {
+            "fields": fields,
+            "table_name": namespace.get("__tablename__", name.lower()),
+            "primary_key": fields.find(f => f.value.primary_key)?.value
+        }
+        
+        return super.__new__(cls, name, bases, namespace)
+    }
+}
+
+class Model : metaclass=ModelMeta {
+    init(**kwargs) {
+        for field_name, field_def in self._meta["fields"].items() {
+            value = kwargs.get(field_name, field_def.default)
+            setattr(self, field_name, value)
+        }
+    }
+    
+    class func create_table(driver) -> bool {
+        if !hasattr(driver, "execute") {
+            warn("Driver doesn't support execute method")
+            return false
+        }
+        
+        fields = []
+        for name, field in self._meta["fields"].items() {
+            field_sql = "{name} {self._get_sql_type(field)}"
+            
+            if field.primary_key {
+                field_sql += " PRIMARY KEY"
+            }
+            if !field.nullable {
+                field_sql += " NOT NULL"
+            }
+            if field.unique {
+                field_sql += " UNIQUE"
+            }
+            if field.default != none && !callable(field.default) {
+                field_sql += " DEFAULT {field.default}"
+            }
+            
+            fields.push(field_sql)
+        }
+        
+        sql = "CREATE TABLE IF NOT EXISTS {self._meta['table_name']} ({fields.join(', ')})"
+        try {
+            driver.execute(sql)
+            return true
+        } catch e {
+            warn("Failed to create table: {e}")
+            return false
+        }
+    }
+    
+    class func _get_sql_type(field: Field) -> str {
+        if field is IntegerField {
+            return "INTEGER"
+        } elif field is StringField {
+            return field.max_length ? "VARCHAR({field.max_length})" : "TEXT"
+        } elif field is BooleanField {
+            return "BOOLEAN"
+        } elif field is FloatField {
+            return "REAL"
+        } elif field is DateTimeField {
+            return "TIMESTAMP"
+        } elif field is ForeignKey {
+            return "INTEGER"
+        }
+        return "TEXT"
+    }
+    
+    func save(driver) -> bool {
+        if !hasattr(driver, "execute") {
+            warn("Driver doesn't support execute method")
+            return false
+        }
+        
+        fields = []
+        values = []
+        placeholders = []
+        
+        for name, field_def in self._meta["fields"].items() {
+            value = getattr(self, name, none)
+            if value == none && !field_def.nullable {
+                warn("Field {name} cannot be null")
+                return false
+            }
+            
+            fields.push(name)
+            values.push(value)
+            placeholders.push("?")
+        }
+        
+        pk = self._meta["primary_key"]
+        if pk && getattr(self, pk.name) == none {
+            # Insert new record
+            sql = """
+                INSERT INTO {self._meta['table_name']} 
+                ({fields.join(', ')}) VALUES ({placeholders.join(', ')})
+            """
+        } else {
+            # Update existing record
+            pk_name = pk.name
+            pk_value = getattr(self, pk_name)
+            set_clause = fields.map(f => "{f} = ?").join(', ')
+            sql = """
+                UPDATE {self._meta['table_name']} 
+                SET {set_clause} WHERE {pk_name} = ?
+            """
+            values.push(pk_value)
+        }
+        
+        try {
+            driver.execute(sql, values)
+            if pk && getattr(self, pk.name) == none && hasattr(driver, "lastrowid") {
+                setattr(self, pk.name, driver.lastrowid)
+            }
+            return true
+        } catch e {
+            warn("Failed to save record: {e}")
+            return false
+        }
+    }
+    
+    class func objects(driver) -> QuerySet {
+        return QuerySet(self, driver)
+    }
+}
+
+class QuerySet {
+    init(model: type, driver) {
+        self.model = model
+        self.driver = driver
+        self._where = []
+        self._params = []
+        self._limit = none
+        self._offset = none
+        self._order_by = []
+    }
+    
+    func filter(**kwargs) -> QuerySet {
+        for key, value in kwargs.items() {
+            self._where.push("{key} = ?")
+            self._params.push(value)
+        }
+        return self
+    }
+    
+    func limit(count: int) -> QuerySet {
+        self._limit = count
+        return self
+    }
+    
+    func offset(count: int) -> QuerySet {
+        self._offset = count
+        return self
+    }
+    
+    func order_by(*fields: str) -> QuerySet {
+        self._order_by.extend(fields)
+        return self
+    }
+    
+    func all() -> list {
+        sql = "SELECT * FROM {self.model._meta['table_name']}"
+        
+        if self._where {
+            sql += " WHERE " + self._where.join(" AND ")
+        }
+        
+        if self._order_by {
+            sql += " ORDER BY " + self._order_by.join(", ")
+        }
+        
+        if self._limit != none {
+            sql += " LIMIT {self._limit}"
+            if self._offset != none {
+                sql += " OFFSET {self._offset}"
+            }
+        }
+        
+        try {
+            results = self.driver.execute(sql, self._params)
+            return results.map(row => self.model(**dict(row)))
+        } catch e {
+            warn("Query failed: {e}")
+            return []
+        }
+    }
+    
+    func first() -> Model? {
+        results = self.limit(1).all()
+        return results[0] if results else none
+    }
+    
+    func count() -> int {
+        sql = "SELECT COUNT(*) FROM {self.model._meta['table_name']}"
+        if self._where {
+            sql += " WHERE " + self._where.join(" AND ")
+        }
+        
+        try {
+            result = self.driver.execute(sql, self._params)
+            return result[0][0] if result else 0
+        } catch e {
+            warn("Count failed: {e}")
+            return 0
+        }
+    }
+}  # <-- This was the missing brace
+
+
+# Export the public API
+export {
+    Model,
+    Field,
+    IntegerField,
+    StringField,
+    BooleanField,
+    FloatField,
+    DateTimeField,
+    ForeignKey
+}

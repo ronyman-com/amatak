@@ -1,0 +1,16 @@
+from typing import List, Dict, Optional
+
+class BaseDriver:
+    """Base database driver interface"""
+    
+    def connect(self, **params) -> bool:
+        raise NotImplementedError()
+    
+    def execute(self, query: str, params: Optional[List] = None) -> List[Dict]:
+        raise NotImplementedError()
+    
+    def disconnect(self) -> bool:
+        raise NotImplementedError()
+    
+    def is_connected(self) -> bool:
+        raise NotImplementedError()

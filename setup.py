@@ -6,7 +6,6 @@ import sys
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# Get package version
 def get_version():
     init_path = os.path.join("amatak", "__init__.py")
     with open(init_path, "r", encoding="utf-8") as f:
@@ -48,12 +47,14 @@ setup(
             "stdlib/**/*.amatak",
             "templates/*",
             "web/static/*",
+            '*.amatak', 'database/drivers/*.amatak', 'database/orm/*.amatak',
         ],
     },
     python_requires=">=3.8",
     install_requires=[
-        "pygments>=2.7",  # For syntax highlighting
-        "watchdog>=2.0",  # For dev server file watching
+        "pygments>=2.7",
+        "watchdog>=2.0",
+        "tabulate>=0.8.9",  # Added for CLI table formatting
     ],
     extras_require={
         "dev": [
@@ -65,17 +66,26 @@ setup(
             "twine>=3.4",
         ],
         "web": [
-            "aiohttp>=3.7",  # For web server components
-            "jinja2>=3.0",   # For templating
+            "aiohttp>=3.7",
+            "jinja2>=3.0",
+        ],
+        "db": [  # Added database extras
+            "psycopg2-binary",
+            "pyreadline;platform_system=='Windows'"
         ],
     },
     entry_points={
-        "console_scripts": [
-            "amatak=amatak.bin.amatak:main",
-            "amatakd=amatak.bin.amatakd:main",  # Daemon mode
-            "akc=amatak.bin.akc:main",          # Compiler
+            "console_scripts": [
+             "amatak=amatak.cli_entry:amatak_main",  # Points to our fixed entry point
+            "amatakd=amatak.bin.amatakd:main",
+            "akc=amatak.bin.akc:main",
         ],
     },
+    scripts=[  # Add explicit script declarations
+        'amatak/bin/amatak',
+        'amatak/bin/amatak.bat',
+        'amatak/bin/akc',
+    ],
     project_urls={
         "Bug Reports": "https://github.com/ronyman-com/lang_amatak/issues",
         "Source": "https://github.com/ronyman-com/lang_amatak",
